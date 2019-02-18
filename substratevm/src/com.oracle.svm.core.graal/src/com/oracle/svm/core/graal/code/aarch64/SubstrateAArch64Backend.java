@@ -668,8 +668,8 @@ public class SubstrateAArch64Backend extends SubstrateBackend implements LIRGene
         return tasm;
     }
 
-    protected AArch64ArithmeticLIRGenerator createArithmeticLIRGen() {
-        return new AArch64ArithmeticLIRGenerator();
+    protected AArch64ArithmeticLIRGenerator createArithmeticLIRGen(AllocatableValue nullRegisterValue) {
+        return new AArch64ArithmeticLIRGenerator(nullRegisterValue);
     }
 
     protected static SubstrateAArch64RegisterConfig getRegisterConfig(LIRGenerationResult lirGenRes) {
@@ -703,7 +703,8 @@ public class SubstrateAArch64Backend extends SubstrateBackend implements LIRGene
 
     @Override
     public LIRGeneratorTool newLIRGenerator(LIRGenerationResult lirGenRes) {
-        AArch64ArithmeticLIRGenerator arithmeticLIRGen = createArithmeticLIRGen();
+        RegisterValue nullRegisterValue = useLinearPointerCompression() ? getHeapBaseRegister(lirGenRes).asValue() : null;
+        AArch64ArithmeticLIRGenerator arithmeticLIRGen = createArithmeticLIRGen(nullRegisterValue);
         AArch64MoveFactory moveFactory = createMoveFactory(lirGenRes);
         return new SubstrateAArch64LIRGenerator(createLirKindTool(), arithmeticLIRGen, moveFactory, getProviders(), lirGenRes);
     }

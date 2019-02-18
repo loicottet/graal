@@ -515,7 +515,11 @@ public class AArch64Move {
                 break;
             case Object:
                 if (input.isNull()) {
-                    masm.mov(dst, 0);
+                    if (crb.mustReplaceWithNullRegister(input)) {
+                        masm.mov(64, dst, crb.nullRegister);
+                    } else {
+                        masm.mov(dst, 0);
+                    }
                 } else if (crb.target.inlineObjects) {
                     crb.recordInlineDataInCode(input);
                     masm.mov(dst, 0xDEADDEADDEADDEADL, true);

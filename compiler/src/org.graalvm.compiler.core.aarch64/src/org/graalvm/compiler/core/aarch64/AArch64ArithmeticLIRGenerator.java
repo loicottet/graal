@@ -54,7 +54,9 @@ import org.graalvm.compiler.lir.aarch64.AArch64Unary;
 import org.graalvm.compiler.lir.gen.ArithmeticLIRGenerator;
 
 import jdk.vm.ci.aarch64.AArch64Kind;
+import jdk.vm.ci.code.RegisterValue;
 import jdk.vm.ci.meta.AllocatableValue;
+import jdk.vm.ci.meta.Constant;
 import jdk.vm.ci.meta.JavaConstant;
 import jdk.vm.ci.meta.PlatformKind;
 import jdk.vm.ci.meta.Value;
@@ -62,9 +64,24 @@ import jdk.vm.ci.meta.ValueKind;
 
 public class AArch64ArithmeticLIRGenerator extends ArithmeticLIRGenerator implements AArch64ArithmeticLIRGeneratorTool {
 
+    public AArch64ArithmeticLIRGenerator(AllocatableValue nullRegisterValue) {
+        this.nullRegisterValue = nullRegisterValue;
+    }
+
+    private final AllocatableValue nullRegisterValue;
+
     @Override
     public AArch64LIRGenerator getLIRGen() {
         return (AArch64LIRGenerator) super.getLIRGen();
+    }
+
+    public boolean mustReplaceNullWithNullRegister(Constant nullConstant) {
+        /* Uncompressed null pointers only */
+        return nullRegisterValue != null && JavaConstant.NULL_POINTER.equals(nullConstant);
+    }
+
+    public AllocatableValue getNullRegisterValue() {
+        return nullRegisterValue;
     }
 
     @Override
@@ -482,11 +499,6 @@ public class AArch64ArithmeticLIRGenerator extends ArithmeticLIRGenerator implem
         }
         AllocatableValue input = asAllocatable(inputVal);
         getLIRGen().append(new StoreOp(kind, storeAddress, input, state));
-    }
-
-    @Override
-    public void emitCompareOp(AArch64Kind cmpKind, Variable left, Value right) {
-        throw GraalError.unimplemented();
     }
 
     @Override
