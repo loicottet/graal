@@ -242,6 +242,10 @@ public abstract class AArch64LIRGenerator extends LIRGenerator {
      */
     @Override
     public Variable emitConditionalMove(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
+        AArch64ArithmeticLIRGenerator arithLir = ((AArch64ArithmeticLIRGenerator) arithmeticLIRGen);
+        if (isJavaConstant(right) && arithLir.mustReplaceNullWithNullRegister((asJavaConstant(right)))) {
+            right = arithLir.getNullRegisterValue();
+        }
         boolean mirrored = emitCompare(cmpKind, left, right, cond, unorderedIsTrue);
         Condition finalCondition = mirrored ? cond.mirror() : cond;
         boolean finalUnorderedIsTrue = mirrored ? !unorderedIsTrue : unorderedIsTrue;
@@ -266,7 +270,7 @@ public abstract class AArch64LIRGenerator extends LIRGenerator {
             assert !LIRValueUtil.isNullConstant(left) : "emitNullCheckBranch()'s null input should be in right.";
             if (LIRValueUtil.isNullConstant(right)) {
                 AArch64ArithmeticLIRGenerator arithLir = ((AArch64ArithmeticLIRGenerator) arithmeticLIRGen);
-                if (arithLir.mustReplaceNullWithNullRegister(((ConstantValue) right).getConstant())) {
+                if (arithLir.mustReplaceNullWithNullRegister(asJavaConstant(right))) {
                     right = arithLir.getNullRegisterValue();
                 } else {
                     append(new CompareBranchZeroOp(asAllocatable(left), trueDestination, falseDestination,

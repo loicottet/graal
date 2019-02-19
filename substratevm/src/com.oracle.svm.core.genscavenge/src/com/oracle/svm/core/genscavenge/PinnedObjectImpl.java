@@ -63,7 +63,7 @@ public class PinnedObjectImpl implements PinnedObject {
     static class PinnedObjectSupportImpl implements PinnedObjectSupport {
         @Override
         public PinnedObject create(Object object) {
-            final Log trace = Log.log().string("[PinnedObject.open:").string(" object: ").object(object).newline();
+            final Log trace = Log.noopLog().string("[PinnedObject.open:").string(" object: ").object(object).newline();
             final PinnedObjectImpl result = new PinnedObjectImpl(object);
             PinnedObjectImpl.pushPinnedObject(result);
             trace.string("  returns: ]").object(result).newline();
@@ -145,7 +145,7 @@ public class PinnedObjectImpl implements PinnedObject {
      * compareAndSet loop.
      */
     public static PinnedObjectImpl pushPinnedObject(PinnedObjectImpl newHead) {
-        final Log trace = Log.log().string("[PinnedObject.pushPinnedObject:").string("  newHead: ").object(newHead);
+        final Log trace = Log.noopLog().string("[PinnedObject.pushPinnedObject:").string("  newHead: ").object(newHead);
         final HeapImpl heap = HeapImpl.getHeapImpl();
         final AtomicReference<PinnedObjectImpl> pinHead = heap.getPinHead();
         PinnedObjectImpl sampleHead;
