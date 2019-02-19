@@ -168,6 +168,24 @@ suite = {
             "workingSets": "SVM",
         },
 
+        "com.oracle.svm.core.graal.llvm": {
+            "subDir": "src",
+            "sourceDirs": ["src"],
+            "dependencies": [
+                "com.oracle.svm.core.graal",
+                "com.oracle.svm.hosted",
+                "compiler:GRAAL_LLVM",
+            ],
+            "checkstyle": "com.oracle.svm.core",
+            "javaCompliance": "8+",
+            "annotationProcessors": [
+                "compiler:GRAAL_NODEINFO_PROCESSOR",
+                "compiler:GRAAL_REPLACEMENTS_PROCESSOR",
+                "compiler:GRAAL_OPTIONS_PROCESSOR",
+            ],
+            "workingSets": "SVM",
+        },
+
         "com.oracle.svm.core.posix": {
             "subDir": "src",
             "sourceDirs": ["src"],
@@ -626,6 +644,7 @@ suite = {
                 "com.oracle.svm.core",
                 "com.oracle.svm.core.graal.amd64",
                 "com.oracle.svm.core.graal.aarch64",
+                "com.oracle.svm.core.graal.llvm",
                 "com.oracle.svm.core.jdk8",
                 "com.oracle.svm.core.jdk9",
                 "com.oracle.svm.core.posix",
@@ -864,5 +883,15 @@ suite = {
                 "native-image.properties" : "file:mx.substratevm/tools-junit.properties",
             },
         },
+
+        "SVM_LLVM" : {
+            "subDir": "src",
+            "dependencies": ["com.oracle.svm.core.graal.llvm"],
+            "distDependencies": [
+                "SVM",
+                "compiler:GRAAL_LLVM"
+            ],
+            "maven": False
+        }
     },
 }

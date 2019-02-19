@@ -3,6 +3,8 @@ suite = {
   "name" : "compiler",
   "sourceinprojectwhitelist" : [],
 
+  "javac.lint.overrides": "-path",
+
   "groupId" : "org.graalvm.compiler",
   "version" : "1.0.0-rc13",
   "release" : False,
@@ -175,8 +177,102 @@ suite = {
         "version" : "2.1.17",
       },
       "dependencies": ["JAXB_API_2.1", "ACTIVATION_1.1.1"]
-    }
+    },
     # /SPECJBB2015
+    "LLVM_PLATFORM": {
+      "sha1" : "503402aa0cf80fd95ede043c0011152c2b4556fd",
+      "dependencies" : ["LLVM_WRAPPER"],
+      "os_arch": {
+        "linux": {
+          "amd64": {
+            "dependencies" : ["LLVM_PLATFORM_SPECIFIC"],
+          },
+        },
+        "darwin": {
+          "amd64": {
+            "dependencies" : ["LLVM_PLATFORM_SPECIFIC"],
+          },
+        },
+        "windows": {
+          "amd64": {
+            "dependencies" : ["LLVM_PLATFORM_SPECIFIC"],
+          },
+        },
+      },
+      "maven" : {
+        "groupId" : "org.bytedeco.javacpp-presets",
+        "artifactId" : "llvm-platform",
+        "version" : "6.0.1-1.4.2",
+      },
+      "license" : "GPLv2-CPE"
+    },
+    "LLVM_WRAPPER": {
+      "sha1" : "a990b2dba1c706f5c43c56fedfe70bad9a695852",
+      "sourceSha1" : "decbd95d46092fa9afaf2523b5b23d07ad7ad6bc",
+      "dependencies" : ["JAVACPP"],
+      "maven" : {
+        "groupId" : "org.bytedeco.javacpp-presets",
+        "artifactId" : "llvm",
+        "version" : "6.0.1-1.4.2",
+      },
+      "license" : "GPLv2-CPE"
+    },
+    "JAVACPP": {
+      "sha1" : "cfa6a0259d98bff5aa8d41ba11b4d1dad648fbaa",
+      "sourceSha1" : "fdb2d2c17f6b91cdd5421554396da8905f0dfed2",
+      "maven" : {
+        "groupId" : "org.bytedeco",
+        "artifactId" : "javacpp",
+        "version" : "1.4.2",
+      },
+      "license" : "GPLv2-CPE"
+    },
+    "LLVM_PLATFORM_SPECIFIC": {
+      "os_arch": {
+        "linux": {
+          "amd64": {
+            "sha1": "344483aefa15147c121a8fb6fb35a2406768cc5c",
+            "maven": {
+              "groupId" : "org.bytedeco.javacpp-presets",
+              "artifactId" : "llvm",
+              "version" : "6.0.1-1.4.2",
+              "classifier": "linux-x86_64"
+            },
+          },
+          "<others>": {
+            "optional": True
+          },
+        },
+        "darwin": {
+          "amd64": {
+            "sha1": "57bc74574104a9e0a2dc4d7a71ffcc5731909e57",
+            "maven": {
+              "groupId" : "org.bytedeco.javacpp-presets",
+              "artifactId" : "llvm",
+              "version" : "6.0.1-1.4.2",
+              "classifier": "macosx-x86_64"
+            }
+          },
+        },
+        "windows": {
+          "amd64": {
+            "sha1": "1fb48595e51b74c83886ec07b277ec914a757aaf",
+            "maven": {
+              "groupId" : "org.bytedeco.javacpp-presets",
+              "artifactId" : "llvm",
+              "version" : "6.0.1-1.4.2",
+              "classifier": "windows-x86_64"
+            },
+          },
+        },
+        "<others>": {
+          "<others>": {
+            "path": "",
+            "optional": True
+          }
+        }
+      },
+    }
   },
 
   "projects" : {
@@ -1264,6 +1360,23 @@ suite = {
       "workingSets" : "Graal,SPARC,Test",
     },
 
+    "org.graalvm.compiler.core.llvm" : {
+      "subDir" : "src",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "org.graalvm.compiler.core",
+        "LLVM_PLATFORM"
+      ],
+      "checkstyle" : "org.graalvm.compiler.graph",
+      "annotationProcessors" : [
+        "GRAAL_NODEINFO_PROCESSOR",
+        "GRAAL_COMPILER_MATCH_PROCESSOR",
+        "GRAAL_OPTIONS_PROCESSOR",
+      ],
+      "javaCompliance" : "8+",
+      "workingSets" : "Graal,LLVM",
+    },
+
     "org.graalvm.compiler.runtime" : {
       "subDir" : "src",
       "sourceDirs" : ["src"],
@@ -2122,6 +2235,7 @@ suite = {
         "org.graalvm.compiler.replacements.amd64",
         "org.graalvm.compiler.core.sparc",
         "org.graalvm.compiler.replacements.sparc",
+        "org.graalvm.compiler.core.llvm",
         "org.graalvm.compiler.hotspot.aarch64",
         "org.graalvm.compiler.hotspot.amd64",
         "org.graalvm.compiler.hotspot.sparc",
@@ -2228,6 +2342,15 @@ suite = {
       "dependencies" : ["org.graalvm.micro.benchmarks"],
       "testDistribution" : True,
       "maven": False,
+    },
+
+    "GRAAL_LLVM" : {
+      "subDir": "src",
+      "dependencies": ["org.graalvm.compiler.core.llvm"],
+      "distDependencies": [
+        "GRAAL",
+      ],
+      "maven": False
     }
   },
 }
