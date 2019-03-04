@@ -135,6 +135,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
                 }
                 assert codeSize > 0L;
                 assert info != null;
+                System.out.println(info);
 
                 LLVMDisposeSectionIterator(sectionIterator);
 
@@ -332,12 +333,16 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
         try {
             List<String> cmd = new ArrayList<>();
             cmd.add("opt");
-            /*
-             * Mem2reg has to be run before rewriting statepoints as it promotes allocas, which are
-             * not supported for statepoints.
-             */
-            cmd.add("-mem2reg");
-            cmd.add("-rewrite-statepoints-for-gc");
+            if (Platform.includedIn(Platform.AMD64.class)) {
+                /*
+                 * Mem2reg has to be run before rewriting statepoints as it promotes allocas, which are
+                 * not supported for statepoints.
+                 */
+                cmd.add("-mem2reg");
+                cmd.add("-rewrite-statepoints-for-gc");
+            }
+//            cmd.add("-sjljehprepare");
+//            cmd.add("-O2");
             cmd.add("-o");
             cmd.add(outputPath);
             cmd.add(inputPath);
@@ -351,6 +356,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
             int status = p.waitFor();
             if (status != 0) {
+                System.out.println(output.toString());
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM optimization failed for " + inputPath + ": " + status);
             }
@@ -363,8 +369,11 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
         try {
             List<String> cmd = new ArrayList<>();
             cmd.add("llc");
-            /* X86 call frame optimization causes variable sized stack frames */
-            cmd.add("-no-x86-call-frame-opt");
+            if (Platform.includedIn(Platform.AMD64.class)) {
+                /* X86 call frame optimization causes variable sized stack frames */
+                cmd.add("-no-x86-call-frame-opt");
+            }
+//            cmd.add("-exception-model=sjlj");
             cmd.add("-O2");
             cmd.add("-filetype=obj");
             cmd.add("-o");
@@ -380,6 +389,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
             int status = p.waitFor();
             if (status != 0) {
+                System.out.println(output.toString());
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM compilation failed for " + inputPath + ": " + status);
             }
@@ -406,6 +416,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
             int status = p.waitFor();
             if (status != 0) {
+                System.out.println(output.toString());
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM linking failed into " + outputPath + ": " + status);
             }

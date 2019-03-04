@@ -132,4 +132,32 @@ public interface ArithmeticLIRGeneratorTool {
         throw GraalError.unimplemented("No specialized implementation available");
     }
 
+    @SuppressWarnings("unused")
+    default Value emitCountLeadingZeros(Value value) {
+        throw GraalError.unimplemented("No specialized implementation available");
+    }
+
+    @SuppressWarnings("unused")
+    default Value emitCountTrailingZeros(Value value) {
+        throw GraalError.unimplemented("No specialized implementation available");
+    }
+
+    enum RoundingMode {
+        NEAREST(0),
+        DOWN(1),
+        UP(2),
+        TRUNCATE(3);
+
+        public final int encoding;
+
+        RoundingMode(int encoding) {
+            this.encoding = encoding;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    default Value emitRound(Value value, RoundingMode mode) {
+        throw GraalError.unimplemented("No specialized implementation available");
+    }
+
 }

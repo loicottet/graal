@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.core.stack;
 
+import com.oracle.svm.core.log.Log;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.c.function.CodePointer;
 import org.graalvm.word.Pointer;
@@ -96,6 +97,7 @@ public final class JavaStackWalker {
                 VMError.guarantee(totalFrameSize != -1, "Stack walk must walk only frames of known code");
 
                 /* This is a Java frame, visit it. */
+                Log.log().string("sp ").hex(sp).string(" ip ").hex(ip).string(" framesize ").signed(totalFrameSize).newline();
                 if (!visitor.visitFrame(sp, ip, deoptFrame)) {
                     return false;
                 }

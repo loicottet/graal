@@ -825,7 +825,7 @@ public class LLVMGenerator implements LIRGeneratorTool {
 
     @Override
     public void emitBlackhole(Value operand) {
-        throw unimplemented();
+        builder.buildInlineConsumeValue(getVal(operand));
     }
 
     @Override
@@ -1223,6 +1223,18 @@ public class LLVMGenerator implements LIRGeneratorTool {
         @Override
         public void emitStore(ValueKind<?> kind, Value address, Value input, LIRFrameState state) {
             builder.buildStore(getVal(input), getVal(address));
+        }
+
+        @Override
+        public Value emitCountLeadingZeros(Value value) {
+            LLVMValueRef leadingZeros = builder.buildCtlz(getVal(value));
+            return new LLVMVariable(leadingZeros);
+        }
+
+        @Override
+        public Value emitCountTrailingZeros(Value value) {
+            LLVMValueRef trailingZeros = builder.buildCttz(getVal(value));
+            return new LLVMVariable(trailingZeros);
         }
     }
 }

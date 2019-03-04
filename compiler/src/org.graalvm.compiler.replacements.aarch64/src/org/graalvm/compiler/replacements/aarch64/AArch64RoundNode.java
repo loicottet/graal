@@ -33,8 +33,7 @@ import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.compiler.graph.NodeClass;
 import org.graalvm.compiler.graph.spi.CanonicalizerTool;
 import org.graalvm.compiler.lir.gen.ArithmeticLIRGeneratorTool;
-import org.graalvm.compiler.lir.aarch64.AArch64ArithmeticLIRGeneratorTool;
-import org.graalvm.compiler.lir.aarch64.AArch64ArithmeticLIRGeneratorTool.RoundingMode;
+import org.graalvm.compiler.lir.gen.ArithmeticLIRGeneratorTool.RoundingMode;
 import org.graalvm.compiler.nodeinfo.NodeInfo;
 import org.graalvm.compiler.nodes.ConstantNode;
 import org.graalvm.compiler.nodes.NodeView;
@@ -110,6 +109,6 @@ public final class AArch64RoundNode extends UnaryNode implements ArithmeticLIRLo
 
     @Override
     public void generate(NodeLIRBuilderTool builder, ArithmeticLIRGeneratorTool gen) {
-        builder.setResult(this, ((AArch64ArithmeticLIRGeneratorTool) gen).emitRound(builder.operand(getValue()), mode));
+        builder.setResult(this, gen.emitRound(builder.operand(getValue()), mode));
     }
 }

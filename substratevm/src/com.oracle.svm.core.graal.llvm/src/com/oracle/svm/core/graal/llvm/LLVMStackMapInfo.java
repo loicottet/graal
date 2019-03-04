@@ -223,6 +223,9 @@ public class LLVMStackMapInfo {
     public void forEachStatepointOffset(long patchpointID, int instructionOffset, Consumer<Integer> callback) {
         Location[] locations = patchpointsByID.get(patchpointID).stream().filter(r -> r.instructionOffset == instructionOffset)
                         .findFirst().orElseThrow(VMError::shouldNotReachHere).locations;
+        if (locations.length == 0) {
+            return;
+        }
         assert locations.length >= 3;
         Location numLiveVariables = locations[2];
         assert numLiveVariables.type == Location.Type.Constant && numLiveVariables.offset + 3 <= locations.length;

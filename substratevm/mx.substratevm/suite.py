@@ -644,7 +644,6 @@ suite = {
                 "com.oracle.svm.core",
                 "com.oracle.svm.core.graal.amd64",
                 "com.oracle.svm.core.graal.aarch64",
-                "com.oracle.svm.core.graal.llvm",
                 "com.oracle.svm.core.jdk8",
                 "com.oracle.svm.core.jdk9",
                 "com.oracle.svm.core.posix",

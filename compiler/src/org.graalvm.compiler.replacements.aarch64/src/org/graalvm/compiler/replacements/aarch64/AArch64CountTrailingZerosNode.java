@@ -88,6 +88,6 @@ public final class AArch64CountTrailingZerosNode extends UnaryNode implements Ar
 
     @Override
     public void generate(NodeLIRBuilderTool builder, ArithmeticLIRGeneratorTool gen) {
-        builder.setResult(this, ((AArch64ArithmeticLIRGeneratorTool) gen).emitCountTrailingZeros(builder.operand(getValue())));
+        builder.setResult(this, gen.emitCountTrailingZeros(builder.operand(getValue())));
     }
 }

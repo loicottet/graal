@@ -76,6 +76,9 @@ public class ReflectionOptionDescriptors implements OptionDescriptors {
 
     private final EconomicMap<String, OptionDescriptor> descriptors = EconomicMap.create();
 
+    public ReflectionOptionDescriptors() {
+    }
+
     public ReflectionOptionDescriptors(Class<?> declaringClass, String... fieldsAndHelp) {
         assert fieldsAndHelp.length % 2 == 0;
         for (int i = 0; i < fieldsAndHelp.length; i += 2) {

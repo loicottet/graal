@@ -4,6 +4,7 @@
  */
 package org.graalvm.compiler.core.llvm;
 
+import static org.bytedeco.javacpp.LLVM.LLVMConstInlineAsm;
 import static org.graalvm.compiler.core.llvm.LLVMUtils.FALSE;
 import static org.graalvm.compiler.core.llvm.LLVMUtils.TRUE;
 import static org.bytedeco.javacpp.LLVM.LLVMAddAttributeAtIndex;
@@ -117,6 +118,7 @@ import org.bytedeco.javacpp.PointerPointer;
 import org.graalvm.compiler.core.common.calc.Condition;
 
 import jdk.vm.ci.meta.JavaKind;
+import org.graalvm.nativeimage.Platform;
 
 public class LLVMIRBuilder {
     private static final String DEFAULT_INSTR_NAME = "";
@@ -163,7 +165,7 @@ public class LLVMIRBuilder {
 
     public void addMainFunction(LLVMTypeRef type) {
         this.function = LLVMAddFunction(module, functionName, type);
-        LLVMSetGC(function, "statepoint-example");
+//        LLVMSetGC(function, "statepoint-example");
         setAttribute(function, "noinline");
     }
 
@@ -176,8 +178,27 @@ public class LLVMIRBuilder {
     }
 
     void setAttribute(LLVMValueRef func, String attribute) {
-        LLVMAttributeRef attr = LLVMCreateEnumAttribute(context, LLVMGetEnumAttributeKindForName(attribute, attribute.length()), TRUE);
+//        int kind = LLVMGetEnumAttributeKindForName(attribute, attribute.length());
+        LLVMAttributeRef attr;
+//        if (kind != 0) {
+//            attr = LLVMCreateEnumAttribute(context, kind, TRUE);
+//        } else {
+            String value = "true";
+            attr = LLVMCreateStringAttribute(context, attribute, attribute.length(), value, value.length());
+//        }
         LLVMAddAttributeAtIndex(func, (int) LLVMAttributeFunctionIndex, attr);
+    }
+
+    void setCallSiteAttribute(LLVMValueRef call, long index, String attribute) {
+//        int kind = LLVMGetEnumAttributeKindForName(attribute, attribute.length());
+        LLVMAttributeRef attr;
+//        if (kind != 0) {
+//            attr = LLVMCreateEnumAttribute(context, kind, TRUE);
+//        } else {
+            String value = "true";
+            attr = LLVMCreateStringAttribute(context, attribute, attribute.length(), value, value.length());
+//        }
+        LLVMAddCallSiteAttribute(call, (int) index, attr);
     }
 
     public String getFunctionName() {
@@ -547,13 +568,30 @@ public class LLVMIRBuilder {
     }
 
     LLVMValueRef buildCall(LLVMValueRef callee, long statepointId, LLVMValueRef... args) {
-        LLVMValueRef call = buildCall(callee, args);
+        LLVMValueRef call;
+        if (Platform.includedIn(Platform.AMD64.class)) {
+            call = buildCall(callee, args);
 
-        String key = "statepoint-id";
-        String value = Long.toString(statepointId);
-        LLVMAttributeRef attribute = LLVMCreateStringAttribute(context, key, key.length(), value, value.length());
-        LLVMAddCallSiteAttribute(call, (int) LLVMAttributeFunctionIndex, attribute);
-
+            String key = "statepoint-id";
+            String value = Long.toString(statepointId);
+            LLVMAttributeRef attribute = LLVMCreateStringAttribute(context, key, key.length(), value, value.length());
+            LLVMAddCallSiteAttribute(call, (int) LLVMAttributeFunctionIndex, attribute);
+        } else {
+            call = buildCall(callee, args);
+            buildStackmap(constantLong(statepointId));
+//            /* The platform doesn't support statepoints */
+//            LLVMTypeRef returnType = LLVMGetReturnType(LLVMGetElementType(LLVMTypeOf(callee)));
+//            LLVMTypeRef patchpointType = functionType(returnType, true, longType(), intType(), objectType(false), intType());
+//
+//            LLVMValueRef[] patchpointArgs = new LLVMValueRef[4 + args.length];
+//            patchpointArgs[0] = constantLong(statepointId);
+//            patchpointArgs[1] = constantInt(0); /* Patch bytes */
+//            patchpointArgs[2] = buildBitcast(callee, objectType(false));
+//            patchpointArgs[3] = constantInt(args.length);
+//            System.arraycopy(args, 0, patchpointArgs, 4, args.length);
+//
+//            call = buildIntrinsicCall("llvm.experimental.patchpoint." + intrinsicType(returnType), patchpointType, patchpointArgs);
+        }
         return call;
     }
 
@@ -570,12 +608,16 @@ public class LLVMIRBuilder {
 
     LLVMValueRef buildSetjmp(LLVMValueRef buffer) {
         LLVMTypeRef setjmpType = functionType(intType(), objectType(false));
-        return buildIntrinsicCall("llvm.eh.sjlj.setjmp", setjmpType, buffer);
+//        return buildIntrinsicCall("llvm.eh.sjlj.setjmp", setjmpType, buffer);
+        LLVMValueRef setjmp = getExternalGlobal("setjmp", false);
+        return buildCall(buildBitcast(setjmp, pointerType(setjmpType, false)), buffer);
     }
 
     public void buildLongjmp(LLVMValueRef buffer) {
-        LLVMTypeRef longjmpType = functionType(voidType(), objectType(false));
-        buildIntrinsicCall("llvm.eh.sjlj.longjmp", longjmpType, buffer);
+        LLVMTypeRef longjmpType = functionType(voidType(), objectType(false), intType());
+//        buildIntrinsicCall("llvm.eh.sjlj.longjmp", longjmpType, buffer);
+        LLVMValueRef longjmp = getExternalGlobal("longjmp", false);
+        buildCall(buildBitcast(longjmp, pointerType(longjmpType, false)), buffer, constantInt(0));
     }
 
     private LLVMValueRef buildIntrinsicCall(String name, LLVMTypeRef type, LLVMValueRef... args) {
@@ -621,6 +663,10 @@ public class LLVMIRBuilder {
 
     void buildDebugtrap() {
         buildIntrinsicCall("llvm.debugtrap", functionType(voidType()));
+    }
+
+    private LLVMValueRef buildInlineAsm(LLVMTypeRef functionType, String asm, String constraints, boolean hasSideEffects, boolean alignStack) {
+        return LLVMConstInlineAsm(functionType, asm, constraints, hasSideEffects ? TRUE : FALSE, alignStack ? TRUE : FALSE);
     }
 
     public LLVMValueRef buildFunctionEntryCountMetadata(LLVMValueRef count) {
@@ -1077,5 +1123,11 @@ public class LLVMIRBuilder {
         LLVMValueRef castedAddress = buildBitcast(address, pointerType(LLVMTypeOf(castedValue), isReference(address)));
         LLVMValueRef atomicRMW = LLVMBuildAtomicRMW(builder, operation, castedAddress, castedValue, LLVMAtomicOrderingSequentiallyConsistent, FALSE);
         return (pointerOp) ? buildConvert(atomicRMW, originalValueType) : atomicRMW;
+    }
+
+    void buildInlineConsumeValue(LLVMValueRef value) {
+        LLVMValueRef consumeValueSnippet = buildInlineAsm(functionType(voidType(), LLVMTypeOf(value)), "NOP", "r", false, false);
+        LLVMValueRef call = buildCall(consumeValueSnippet, value);
+        setCallSiteAttribute(call, LLVMAttributeFunctionIndex, "gc-leaf-function");
     }
 }

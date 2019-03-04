@@ -187,6 +187,9 @@ suite = {
           "amd64": {
             "dependencies" : ["LLVM_PLATFORM_SPECIFIC"],
           },
+          "aarch64": {
+            "dependencies" : ["LLVM_PLATFORM_SPECIFIC"],
+          }
         },
         "darwin": {
           "amd64": {
@@ -239,8 +242,9 @@ suite = {
               "classifier": "linux-x86_64"
             },
           },
-          "<others>": {
-            "optional": True
+          "aarch64": {
+            "sha1": "40c3f2a261d00fbfb8706af8801a4fb537df3eee",
+            "path": "/scratch/javacpp-presets/llvm-6.0.1-1.4.2-linux-x86arm64.jar",
           },
         },
         "darwin": {
@@ -2235,7 +2239,6 @@ suite = {
         "org.graalvm.compiler.replacements.amd64",
         "org.graalvm.compiler.core.sparc",
         "org.graalvm.compiler.replacements.sparc",
-        "org.graalvm.compiler.core.llvm",
         "org.graalvm.compiler.hotspot.aarch64",
         "org.graalvm.compiler.hotspot.amd64",
         "org.graalvm.compiler.hotspot.sparc",
@@ -2349,6 +2352,9 @@ suite = {
       "dependencies": ["org.graalvm.compiler.core.llvm"],
       "distDependencies": [
         "GRAAL",
+        "LLVM_PLATFORM",
+        "LLVM_WRAPPER",
+        "JAVACPP",
       ],
       "maven": False
     }

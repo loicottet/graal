@@ -205,6 +205,7 @@ public class SnippetRuntime {
 
             } else {
                 long handler = CodeInfoTable.lookupExceptionOffset(ip);
+                Log.log().string("handler ").signed(handler).newline();
                 if (handler == 0) {
                     /* No handler found in this frame, walk to caller frame. */
                     return true;
@@ -217,6 +218,7 @@ public class SnippetRuntime {
 
             StackOverflowCheck.singleton().protectYellowZone();
 
+            Log.log().string("jumping to ").hex(sp).string(", ").hex(continueIP).newline();
             KnownIntrinsics.farReturn(exception, sp, continueIP);
             /*
              * The intrinsic performs a jump to the specified instruction pointer, so this code is
