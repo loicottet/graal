@@ -25,6 +25,7 @@
 package com.oracle.svm.core.graal.llvm;
 
 import static com.oracle.svm.core.util.VMError.shouldNotReachHere;
+import static com.oracle.svm.core.util.VMError.unsupportedFeature;
 import static com.oracle.svm.hosted.image.NativeBootImage.RWDATA_CGLOBALS_PARTITION_OFFSET;
 import static org.graalvm.compiler.core.llvm.LLVMUtils.FALSE;
 import static org.graalvm.compiler.core.llvm.LLVMUtils.TRUE;
@@ -44,6 +45,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.oracle.svm.core.OS;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.LLVM;
 import org.bytedeco.javacpp.LLVM.LLVMMemoryBufferRef;
@@ -444,8 +446,27 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             cmd.add("llc");
             cmd.add("-relocation-model=pic");
 
-            /* X86 call frame optimization causes variable sized stack frames */
-            cmd.add("-no-x86-call-frame-opt");
+            if (SubstrateOptions.MultiThreaded.getValue()) {
+                String llcLibrary;
+                switch (OS.getCurrent()) {
+                    case LINUX:
+                        llcLibrary = "Graal86.so";
+                        break;
+                    case DARWIN:
+                        llcLibrary = "Graal86.dylib";
+                        break;
+                    default:
+                        throw unsupportedFeature("Only Linux and macOS are supported by the LLVM backend");
+                }
+                cmd.add("-load=llvm/" + llcLibrary);
+                cmd.add("-march=graal86-64");
+                cmd.add("-mattr=graal-thread-pointer");
+                cmd.add("-no-graal86-call-frame-opt");
+            } else {
+                /* X86 call frame optimization causes variable sized stack frames */
+                cmd.add("-no-x86-call-frame-opt");
+            }
+
             cmd.add("-O2");
             cmd.add("-filetype=obj");
             cmd.add("-o");

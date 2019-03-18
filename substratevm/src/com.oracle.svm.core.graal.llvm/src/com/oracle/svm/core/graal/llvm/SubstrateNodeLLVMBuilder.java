@@ -24,8 +24,14 @@
  */
 package com.oracle.svm.core.graal.llvm;
 
+import com.oracle.svm.core.graal.meta.SubstrateRegisterConfig;
+import com.oracle.svm.core.nodes.SafepointCheckNode;
+import com.oracle.svm.core.thread.Safepoint;
+import jdk.vm.ci.code.Register;
+import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 import org.graalvm.compiler.core.llvm.LLVMGenerator;
 import org.graalvm.compiler.core.llvm.NodeLLVMBuilder;
+import org.graalvm.compiler.nodes.LogicNode;
 import org.graalvm.compiler.nodes.StructuredGraph;
 
 import com.oracle.svm.core.graal.code.CGlobalDataInfo;
@@ -49,5 +55,18 @@ public class SubstrateNodeLLVMBuilder extends NodeLLVMBuilder implements Substra
         ((SubstrateLLVMGenerationResult) gen.getLLVMResult()).recordCGlobal(new CGlobalDataReference(dataInfo), symbolName);
 
         setResult(node, builder.buildPtrToInt(builder.getExternalSymbol(symbolName), builder.longType()));
+    }
+
+    @Override
+    protected LLVMValueRef emitCondition(LogicNode condition) {
+        if (condition instanceof SafepointCheckNode) {
+            Register threadRegister = ((SubstrateRegisterConfig) gen.getRegisterConfig()).getThreadRegister();
+            LLVMValueRef threadData = gen.getBuilder().buildInlineGetRegister(threadRegister.name);
+            threadData = gen.getBuilder().buildIntToPtr(threadData, gen.getBuilder().rawPointerType());
+            LLVMValueRef safepointCounterAddr = gen.getBuilder().buildGEP(threadData, gen.getBuilder().constantInt(Math.toIntExact(Safepoint.getThreadLocalSafepointRequestedOffset())));
+            LLVMValueRef safepointCount = gen.getBuilder().buildAtomicSub(safepointCounterAddr, gen.getBuilder().constantInt(1));
+            return gen.getBuilder().buildIsNull(safepointCount);
+        }
+        return super.emitCondition(condition);
     }
 }
