@@ -1228,12 +1228,14 @@ public class LLVMGenerator implements LIRGeneratorTool {
         @Override
         public Value emitCountLeadingZeros(Value value) {
             LLVMValueRef leadingZeros = builder.buildCtlz(getVal(value));
+            leadingZeros = builder.buildConvert(leadingZeros, builder.intType());
             return new LLVMVariable(leadingZeros);
         }
 
         @Override
         public Value emitCountTrailingZeros(Value value) {
             LLVMValueRef trailingZeros = builder.buildCttz(getVal(value));
+            trailingZeros = builder.buildConvert(trailingZeros, builder.intType());
             return new LLVMVariable(trailingZeros);
         }
     }
