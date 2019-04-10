@@ -49,9 +49,10 @@ import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 import org.bytedeco.javacpp.PointerPointer;
 import org.graalvm.compiler.core.common.calc.Condition;
-
-import jdk.vm.ci.meta.JavaKind;
 import org.graalvm.nativeimage.Platform;
+
+import jdk.vm.ci.code.CallingConvention;
+import jdk.vm.ci.meta.JavaKind;
 
 public class LLVMIRBuilder {
     private static final String DEFAULT_INSTR_NAME = "";
@@ -107,11 +108,14 @@ public class LLVMIRBuilder {
         return LLVM.LLVMAddFunction(module, name, type);
     }
 
-    public void addMainFunction(LLVMTypeRef type) {
+    public void addMainFunction(LLVMTypeRef type, boolean isEntryPoint) {
         this.function = addFunction(functionName, type);
         LLVM.LLVMSetGC(function, "statepoint-example");
         setLinkage(function, LLVM.LLVMExternalLinkage);
         setAttribute(function, LLVM.LLVMAttributeFunctionIndex, "noinline");
+//        if (!isEntryPoint) {
+//            setFunctionCallingConvention(function, "graal");
+//        }
     }
 
     public LLVMValueRef getMainFunction() {
@@ -122,7 +126,7 @@ public class LLVMIRBuilder {
         LLVM.LLVMSetLinkage(global, linkage);
     }
 
-    void setAttribute(LLVMValueRef func, long index, String attribute) {
+    public void setAttribute(LLVMValueRef func, long index, String attribute) {
         int kind = LLVM.LLVMGetEnumAttributeKindForName(attribute, attribute.length());
         LLVMAttributeRef attr;
         if (kind != 0) {
@@ -144,6 +148,23 @@ public class LLVMIRBuilder {
             attr = LLVM.LLVMCreateStringAttribute(context, attribute, attribute.length(), value, value.length());
         }
         LLVM.LLVMAddCallSiteAttribute(call, (int) index, attr);
+    }
+
+    void setFunctionCallingConvention(LLVMValueRef function, String cc) {
+        LLVM.LLVMSetFunctionCallConv(function, callConvId(cc));
+    }
+
+    void setCallCallingConvention(LLVMValueRef call, String cc) {
+        LLVM.LLVMSetInstructionCallConv(call, callConvId(cc));
+    }
+
+    private int callConvId(String cc) {
+        switch (cc) {
+            case "graal":
+                return LLVMUtils.LLVM_GRAAL_CC;
+            default:
+                return LLVM.LLVMCCallConv;
+        }
     }
 
     LLVMBasicBlockRef appendBasicBlock(String name, LLVMValueRef func) {
@@ -421,7 +442,7 @@ public class LLVMIRBuilder {
         return LLVM.LLVMConstReal(doubleType(), x);
     }
 
-    LLVMValueRef constantNull(LLVMTypeRef type) {
+    public LLVMValueRef constantNull(LLVMTypeRef type) {
         return LLVM.LLVMConstNull(type);
     }
 
@@ -511,13 +532,13 @@ public class LLVMIRBuilder {
         LLVM.LLVMSetInitializer(global, value);
     }
 
-    LLVMValueRef register(String name) {
+    public LLVMValueRef register(String name) {
         String nameEncoding = name + "\00";
         LLVMValueRef[] vals = new LLVMValueRef[]{LLVM.LLVMMDStringInContext(context, nameEncoding, nameEncoding.length())};
         return LLVM.LLVMMDNodeInContext(context, new PointerPointer<>(vals), vals.length);
     }
 
-    LLVMValueRef buildReadRegister(LLVMValueRef register) {
+    public LLVMValueRef buildReadRegister(LLVMValueRef register) {
         LLVMTypeRef readRegisterType = functionType(longType(), metadataType());
         return buildIntrinsicCall("llvm.read_register.i64", readRegisterType, register);
     }
@@ -545,14 +566,14 @@ public class LLVMIRBuilder {
         return LLVM.LLVMBuildCall(builder, callee, new PointerPointer<>(args), args.length, DEFAULT_INSTR_NAME);
     }
 
-    LLVMValueRef buildCall(LLVMValueRef callee, long statepointId, LLVMValueRef... args) {
+    LLVMValueRef buildCall(LLVMValueRef callee, long statepointId, CallingConvention.Type callType, LLVMValueRef... args) {
         LLVMValueRef result;
+        LLVMValueRef call;
         if (Platform.includedIn(Platform.AMD64.class)) {
             if (trackPointers) {
-                result = buildCall(callee, args);
+                result = call = buildCall(callee, args);
                 addCallSiteAttribute(result, "statepoint-id", Long.toString(statepointId));
             } else {
-
                 LLVMTypeRef calleeType = typeOf(callee);
                 LLVMTypeRef statepointType = functionType(tokenType(), true, longType(), intType(), calleeType, intType(), intType());
 
@@ -566,18 +587,24 @@ public class LLVMIRBuilder {
                 statepointArgs[5 + args.length] = constantLong(0L); /* numTransitionArgs */
                 statepointArgs[6 + args.length] = constantLong(0L); /* numDeoptArgs */
 
-                LLVMValueRef token = buildIntrinsicCall("llvm.experimental.gc.statepoint." + intrinsicType(calleeType), statepointType, statepointArgs);
+                LLVMValueRef token = call = buildIntrinsicCall("llvm.experimental.gc.statepoint." + intrinsicType(calleeType), statepointType, statepointArgs);
 
                 LLVMTypeRef resultType = getReturnType(LLVM.LLVMGetElementType(calleeType));
                 LLVMTypeRef gcResultType = functionType(resultType, tokenType());
                 result = buildIntrinsicCall("llvm.experimental.gc.result." + intrinsicType(resultType), gcResultType, token);
-
             }
         } else {
-            result = buildCall(callee, args);
+            result = call = buildCall(callee, args);
             buildStackmap(constantLong(statepointId));
         }
+
+        setCallCallingConvention(call, callingConvention(callType));
+
         return result;
+    }
+
+    protected String callingConvention(CallingConvention.Type callType) {
+        return "ccc";
     }
 
     private void addCallSiteAttribute(LLVMValueRef call, String key, String value) {
@@ -1072,7 +1099,7 @@ public class LLVMIRBuilder {
 
     public LLVMValueRef buildInlineGetRegister(String registerName) {
         if (!getRegisterSnippet.containsKey(registerName)) {
-            getRegisterSnippet.put(registerName, buildInlineAsm(functionType(longType()), LLVMUtils.LLVMInlineAsmSnippets.get().getRegisterSnippet(registerName), "=r", false, false));
+            getRegisterSnippet.put(registerName, buildInlineAsm(functionType(longType()), LLVMUtils.LLVMInlineAsmSnippets.get().getRegisterSnippet(registerName), "=r", true, false));
         }
         LLVMValueRef call = buildCall(getRegisterSnippet.get(registerName));
         setCallSiteAttribute(call, LLVM.LLVMAttributeFunctionIndex, "gc-leaf-function");
@@ -1081,7 +1108,7 @@ public class LLVMIRBuilder {
 
     private Map<String, LLVMValueRef> setRegisterSnippet = new HashMap<>();
 
-    void buildInlineSetRegister(String registerName, LLVMValueRef value) {
+    public void buildInlineSetRegister(String registerName, LLVMValueRef value) {
         if (!setRegisterSnippet.containsKey(registerName)) {
             /*
              * Setting a register is considered a side effect because this register is not tracked
@@ -1097,7 +1124,7 @@ public class LLVMIRBuilder {
 
     LLVMValueRef buildInlineAddRegister(String registerName, LLVMValueRef value) {
         if (!addRegisterSnippet.containsKey(registerName)) {
-            addRegisterSnippet.put(registerName, buildInlineAsm(functionType(longType(), longType()), LLVMUtils.LLVMInlineAsmSnippets.get().addRegisterSnippet(registerName), "=r,0", false, false));
+            addRegisterSnippet.put(registerName, buildInlineAsm(functionType(longType(), longType()), LLVMUtils.LLVMInlineAsmSnippets.get().addRegisterSnippet(registerName), "=r,0", true, false));
         }
         LLVMValueRef call = buildCall(addRegisterSnippet.get(registerName), value);
         setCallSiteAttribute(call, LLVM.LLVMAttributeFunctionIndex, "gc-leaf-function");
@@ -1108,9 +1135,20 @@ public class LLVMIRBuilder {
 
     LLVMValueRef buildInlineSubRegister(String registerName, LLVMValueRef value) {
         if (!subRegisterSnippet.containsKey(registerName)) {
-            subRegisterSnippet.put(registerName, buildInlineAsm(functionType(longType(), longType()), LLVMUtils.LLVMInlineAsmSnippets.get().subRegisterSnippet(registerName), "=r,0", false, false));
+            subRegisterSnippet.put(registerName, buildInlineAsm(functionType(longType(), longType()), LLVMUtils.LLVMInlineAsmSnippets.get().subRegisterSnippet(registerName), "=r,0", true, false));
         }
         LLVMValueRef call = buildCall(subRegisterSnippet.get(registerName), value);
+        setCallSiteAttribute(call, LLVM.LLVMAttributeFunctionIndex, "gc-leaf-function");
+        return call;
+    }
+
+    private LLVMValueRef jumpSnippet;
+
+    public LLVMValueRef buildInlineJump(LLVMValueRef dest) {
+        if (jumpSnippet == null) {
+            jumpSnippet = buildInlineAsm(functionType(voidType(), rawPointerType()), LLVMUtils.LLVMInlineAsmSnippets.get().jumpSnippet(), "r", true, false);
+        }
+        LLVMValueRef call = buildCall(jumpSnippet, dest);
         setCallSiteAttribute(call, LLVM.LLVMAttributeFunctionIndex, "gc-leaf-function");
         return call;
     }
