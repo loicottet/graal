@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 import jdk.vm.ci.aarch64.AArch64Kind;
+import jdk.vm.ci.code.CallingConvention;
 import org.bytedeco.javacpp.LLVM.LLVMBasicBlockRef;
 import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
@@ -214,7 +215,15 @@ public class LLVMGenerator implements LIRGeneratorTool {
         return builder.getExternalObject(symbolName);
     }
 
-    protected void emitPrintf(String base) {
+    protected void emitFunctionPrologue() {
+        throw unimplemented();
+    }
+
+    protected void emitFunctionEpilogue() {
+        throw unimplemented();
+    }
+
+    public void emitPrintf(String base) {
         emitPrintf(base, new JavaKind[0], new LLVMValueRef[0]);
     }
 
@@ -446,11 +455,15 @@ public class LLVMGenerator implements LIRGeneratorTool {
         LLVMValueRef callee = getFunction(targetMethod);
         LLVMValueRef[] arguments = Arrays.stream(args).map(LLVMUtils::getVal).toArray(LLVMValueRef[]::new);
 
-        LLVMValueRef call = builder.buildCall(callee, patchpointId, arguments);
+        LLVMValueRef call = builder.buildCall(callee, patchpointId, getForeignCallCallingConvention(linkage), arguments);
         return new LLVMVariable(call);
     }
 
     protected ResolvedJavaMethod findForeignCallTarget(@SuppressWarnings("unused") ForeignCallDescriptor descriptor) {
+        throw unimplemented();
+    }
+
+    protected CallingConvention.Type getForeignCallCallingConvention(@SuppressWarnings("unused") ForeignCallLinkage linkage) {
         throw unimplemented();
     }
 
@@ -545,6 +558,7 @@ public class LLVMGenerator implements LIRGeneratorTool {
                 emitPrintf("Return");
                 deindent();
             }
+            emitFunctionEpilogue();
             builder.buildRetVoid();
         } else {
             if (debugLevel >= DebugLevel.FUNCTION) {
@@ -572,6 +586,7 @@ public class LLVMGenerator implements LIRGeneratorTool {
                 retVal = builder.buildIntToPtr(retVal, builder.rawPointerType());
                 retVal = builder.buildRegisterObject(retVal);
             }
+            emitFunctionEpilogue();
             builder.buildRet(retVal);
         }
     }

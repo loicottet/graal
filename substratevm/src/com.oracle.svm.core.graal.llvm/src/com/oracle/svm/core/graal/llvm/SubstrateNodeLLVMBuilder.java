@@ -24,30 +24,41 @@
  */
 package com.oracle.svm.core.graal.llvm;
 
+import static com.oracle.svm.core.graal.code.SubstrateBackend.getJavaFrameAnchor;
+import static com.oracle.svm.core.graal.code.SubstrateBackend.hasJavaFrameAnchor;
+
+import com.oracle.svm.core.meta.SharedMethod;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 import org.graalvm.compiler.core.llvm.LLVMGenerator;
 import org.graalvm.compiler.core.llvm.LLVMUtils;
 import org.graalvm.compiler.core.llvm.NodeLLVMBuilder;
 import org.graalvm.compiler.lir.Variable;
+import org.graalvm.compiler.nodes.CallTargetNode;
 import org.graalvm.compiler.nodes.LogicNode;
 import org.graalvm.compiler.nodes.StructuredGraph;
 
+import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.graal.code.CGlobalDataInfo;
 import com.oracle.svm.core.graal.code.CGlobalDataReference;
 import com.oracle.svm.core.graal.code.SubstrateDebugInfoBuilder;
 import com.oracle.svm.core.graal.code.SubstrateNodeLIRBuilder;
+import com.oracle.svm.core.graal.meta.RuntimeConfiguration;
 import com.oracle.svm.core.graal.meta.SubstrateRegisterConfig;
 import com.oracle.svm.core.graal.nodes.CGlobalDataLoadAddressNode;
 import com.oracle.svm.core.nodes.SafepointCheckNode;
 import com.oracle.svm.core.thread.Safepoint;
+import com.oracle.svm.core.thread.VMThreads;
 
 import jdk.vm.ci.code.Register;
 
 public class SubstrateNodeLLVMBuilder extends NodeLLVMBuilder implements SubstrateNodeLIRBuilder {
     private long nextCGlobalId = 0L;
+    private RuntimeConfiguration runtimeConfiguration;
 
-    protected SubstrateNodeLLVMBuilder(StructuredGraph graph, LLVMGenerator gen) {
-        super(graph, gen, SubstrateDebugInfoBuilder::new);
+    protected SubstrateNodeLLVMBuilder(StructuredGraph graph, LLVMGenerator gen, RuntimeConfiguration runtimeConfiguration) {
+        super(graph, gen, SubstrateDebugInfoBuilder::new, ((SharedMethod) graph.method()).isEntryPoint());
+
+        this.runtimeConfiguration = runtimeConfiguration;
     }
 
     @Override
@@ -76,5 +87,33 @@ public class SubstrateNodeLLVMBuilder extends NodeLLVMBuilder implements Substra
             return gen.getBuilder().buildIsNull(safepointCount);
         }
         return super.emitCondition(condition);
+    }
+
+    @Override
+    protected void emitInvokeIntermediate(CallTargetNode callTarget) {
+        if (!hasJavaFrameAnchor(callTarget)) {
+            return;
+        }
+
+        LLVMValueRef anchor = llvmOperand(getJavaFrameAnchor(callTarget));
+        anchor = builder.buildIntToPtr(anchor, builder.rawPointerType());
+
+        LLVMValueRef lastIPAddr = builder.buildGEP(anchor, builder.constantInt(runtimeConfiguration.getJavaFrameAnchorLastIPOffset()));
+        builder.buildStore(builder.constantNull(builder.rawPointerType()), lastIPAddr); /* TODO store actual address */
+
+        LLVMValueRef lastSPAddr = builder.buildGEP(anchor, builder.constantInt(runtimeConfiguration.getJavaFrameAnchorLastSPOffset()));
+        builder.buildStore(builder.buildReadRegister(builder.register("rsp")), lastSPAddr);
+
+        if (SubstrateOptions.MultiThreaded.getValue()) {
+            LLVMValueRef threadLocalArea = builder.buildInlineGetRegister(runtimeConfiguration.getThreadRegister().name);
+            LLVMValueRef statusIndex = builder.constantInt(runtimeConfiguration.getVMThreadStatusOffset());
+            LLVMValueRef statusAddress = builder.buildGEP(builder.buildIntToPtr(threadLocalArea, builder.rawPointerType()), statusIndex);
+            builder.buildStore(builder.constantInt(VMThreads.StatusSupport.STATUS_IN_NATIVE), statusAddress);
+        }
+    }
+
+    @Override
+    public SubstrateLLVMGenerator getLIRGeneratorTool() {
+        return (SubstrateLLVMGenerator) super.getLIRGeneratorTool();
     }
 }

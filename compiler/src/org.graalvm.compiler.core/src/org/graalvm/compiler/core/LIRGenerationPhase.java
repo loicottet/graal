@@ -67,6 +67,9 @@ public class LIRGenerationPhase extends LIRPhase<LIRGenerationPhase.LIRGeneratio
         NodeLIRBuilderTool nodeLirBuilder = context.nodeLirBuilder;
         StructuredGraph graph = context.graph;
         ScheduleResult schedule = context.schedule;
+        if (graph.method().getName().contains("GetIntArrayElements")) {
+            System.out.println("found");
+        }
         AbstractBlockBase<?>[] blocks = lirGenRes.getLIR().getControlFlowGraph().getBlocks();
         for (AbstractBlockBase<?> b : blocks) {
             matchBlock(nodeLirBuilder, (Block) b, graph, schedule);

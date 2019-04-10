@@ -162,6 +162,11 @@ class LLVMAMD64Feature implements Feature {
             }
 
             @Override
+            public String jumpSnippet() {
+                return "jmpq *($0)";
+            }
+
+            @Override
             public String pauseSnippet() {
                 return "pause";
             }

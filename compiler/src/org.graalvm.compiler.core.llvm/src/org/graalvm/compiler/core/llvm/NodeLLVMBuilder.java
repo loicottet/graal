@@ -65,6 +65,7 @@ import org.graalvm.compiler.nodes.AbstractBeginNode;
 import org.graalvm.compiler.nodes.AbstractEndNode;
 import org.graalvm.compiler.nodes.AbstractMergeNode;
 import org.graalvm.compiler.nodes.BreakpointNode;
+import org.graalvm.compiler.nodes.CallTargetNode;
 import org.graalvm.compiler.nodes.DeoptimizingNode;
 import org.graalvm.compiler.nodes.DirectCallTargetNode;
 import org.graalvm.compiler.nodes.FrameState;
@@ -112,12 +113,12 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
     private long startPatchpointID = -1L;
     private LLVMValueRef setjmpBuffer = null;
 
-    protected NodeLLVMBuilder(StructuredGraph graph, LLVMGenerator gen, BiFunction<NodeValueMap, DebugContext, DebugInfoBuilder> debugInfoProvider) {
+    protected NodeLLVMBuilder(StructuredGraph graph, LLVMGenerator gen, BiFunction<NodeValueMap, DebugContext, DebugInfoBuilder> debugInfoProvider, boolean isEntryPoint) {
         this.gen = gen;
         this.builder = gen.getBuilder();
         this.debugInfoBuilder = debugInfoProvider.apply(this, graph.getDebug());
 
-        gen.getBuilder().addMainFunction(gen.getLLVMFunctionType(graph.method()));
+        gen.getBuilder().addMainFunction(gen.getLLVMFunctionType(graph.method()), isEntryPoint);
 
         for (Block block : graph.getLastSchedule().getCFG().getBlocks()) {
             gen.appendBasicBlock(block);
@@ -138,6 +139,8 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
         gen.beginBlock(block);
         if (block == graph.getLastSchedule().getCFG().getStartBlock()) {
             assert block.getPredecessorCount() == 0;
+
+            gen.emitFunctionPrologue();
 
             startPatchpointID = LLVMIRBuilder.nextPatchpointId.getAndIncrement();
             gen.getLLVMResult().setStartPatchpointID(startPatchpointID);
@@ -387,6 +390,7 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
         LoweredCallTargetNode callTarget = (LoweredCallTargetNode) i.callTarget();
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
         NodeInputList<ValueNode> arguments = callTarget.arguments();
+        CallingConvention.Type callType = callTarget.callType();
 
         LLVMValueRef callee;
         LLVMValueRef[] args;
@@ -424,6 +428,8 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
             throw shouldNotReachHere();
         }
 
+        emitInvokeIntermediate(callTarget);
+
         LLVMValueRef call;
         if (i instanceof InvokeWithExceptionNode) {
             InvokeWithExceptionNode invokeWithExceptionNode = (InvokeWithExceptionNode) i;
@@ -443,15 +449,19 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
             builder.buildIf(zeroStatus, callBlock, handler);
 
             builder.positionAtEnd(callBlock);
-            call = builder.buildCall(callee, patchpointId, args);
+            call = builder.buildCall(callee, patchpointId, callType, args);
             builder.buildBranch(successor);
 
             gen.getLLVMResult().recordExceptionHandler(patchpointId, startPatchpointID);
         } else {
-            call = builder.buildCall(callee, patchpointId, args);
+            call = builder.buildCall(callee, patchpointId, callType, args);
         }
 
         setResult(i.asNode(), call);
+    }
+
+    protected void emitInvokeIntermediate(CallTargetNode callTarget) {
+        throw unimplemented();
     }
 
     @Override
@@ -544,7 +554,7 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
         return (Value) valueMap.get(node);
     }
 
-    private LLVMValueRef llvmOperand(Node node) {
+    protected LLVMValueRef llvmOperand(Node node) {
         assert valueMap.containsKey(node);
         return valueMap.get(node).get();
     }
