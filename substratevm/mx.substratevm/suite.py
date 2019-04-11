@@ -964,7 +964,7 @@ suite = {
                 "SVM",
                 "compiler:GRAAL_LLVM"
             ],
-            "maven" : False,
+            "maven" : True,
         }
     },
 }
