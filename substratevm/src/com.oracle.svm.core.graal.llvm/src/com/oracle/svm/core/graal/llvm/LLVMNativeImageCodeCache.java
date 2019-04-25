@@ -435,6 +435,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
             int status = p.waitFor();
             if (status != 0) {
+                System.out.println(output.toString());
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM optimization failed for " + inputPath + ": " + status);
             }
@@ -464,7 +465,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
                     default:
                         throw unsupportedFeature("Only Linux and macOS are supported by the LLVM backend");
                 }
-                cmd.add("-load=llvm/" + llcLibrary);
+                cmd.add("-load=/Users/loicottet/Projects/graal/llclib/" + llcLibrary);
                 cmd.add("-march=graal86-64");
                 cmd.add("-mattr=graal-thread-pointer");
                 cmd.add("-no-graal86-call-frame-opt");
@@ -489,6 +490,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
             int status = p.waitFor();
             if (status != 0) {
+                System.out.println(output.toString());
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM compilation failed for " + inputPath + ": " + status);
             }
@@ -515,6 +517,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
             int status = p.waitFor();
             if (status != 0) {
+                System.out.println(output.toString());
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM linking failed into " + outputPath + ": " + status);
             }
