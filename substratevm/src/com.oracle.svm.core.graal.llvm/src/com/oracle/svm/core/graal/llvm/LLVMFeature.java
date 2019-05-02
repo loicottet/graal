@@ -168,3 +168,42 @@ class LLVMAMD64Feature implements Feature {
         });
     }
 }
+
+@AutomaticFeature
+@Platforms(Platform.AArch64.class)
+class LLVMAArch64Feature implements Feature {
+    @Override
+    public boolean isInConfiguration(IsInConfigurationAccess access) {
+        return CompilerBackend.getValue().equals("llvm") && Platform.includedIn(Platform.AArch64.class);
+    }
+
+    @Override
+    public void afterRegistration(AfterRegistrationAccess access) {
+        ImageSingletons.add(LLVMUtils.LLVMInlineAsmSnippets.class, new LLVMUtils.LLVMInlineAsmSnippets() {
+            @Override
+            public String getRegisterSnippet(String registerName) {
+                return "MOV $0, " + registerName;
+            }
+
+            @Override
+            public String setRegisterSnippet(String registerName) {
+                return "MOV " + registerName + ", $0";
+            }
+
+            @Override
+            public String addRegisterSnippet(String registerName) {
+                return "ADD $0, " + registerName + ", $0";
+            }
+
+            @Override
+            public String subRegisterSnippet(String registerName) {
+                return "SUB $0, " + registerName + ", $0";
+            }
+
+            @Override
+            public String pauseSnippet() {
+                return "NOP";
+            }
+        });
+    }
+}

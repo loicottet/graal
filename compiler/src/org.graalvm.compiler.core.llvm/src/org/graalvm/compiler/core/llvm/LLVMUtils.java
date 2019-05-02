@@ -361,4 +361,9 @@ public class LLVMUtils {
 
         String pauseSnippet();
     }
+
+    public enum Target {
+        AMD64,
+        AArch64
+    }
 }

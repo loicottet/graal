@@ -56,6 +56,7 @@ import org.bytedeco.javacpp.LLVM.LLVMSymbolIteratorRef;
 import org.bytedeco.javacpp.Pointer;
 import org.graalvm.compiler.code.CompilationResult;
 import org.graalvm.compiler.core.common.NumUtil;
+import org.graalvm.compiler.core.llvm.LLVMUtils;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.debug.GraalError;
 import org.graalvm.compiler.debug.Indent;
@@ -70,7 +71,6 @@ import com.oracle.objectfile.ObjectFile;
 import com.oracle.objectfile.ObjectFile.Element;
 import com.oracle.objectfile.SectionName;
 import com.oracle.svm.core.FrameAccess;
-import com.oracle.svm.core.OS;
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.graal.code.CGlobalDataReference;
@@ -446,33 +446,67 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
     private void llvmCompile(DebugContext debug, String outputPath, String inputPath) {
         try {
+            LLVMUtils.Target arch;
+            if (targetPlatform instanceof Platform.AMD64) {
+                arch = LLVMUtils.Target.AMD64;
+            } else if (targetPlatform instanceof Platform.AArch64) {
+                arch = LLVMUtils.Target.AArch64;
+            } else {
+                throw unsupportedFeature("Unknown target");
+            }
+
             List<String> cmd = new ArrayList<>();
-            cmd.add("llc");
+            if (SubstrateOptions.MultiThreaded.getValue()) {
+                cmd.add("/Users/loicottet/Projects/graal/llclib/llc-aarch64");
+            } else {
+                cmd.add("llc");
+            }
             cmd.add("-relocation-model=pic");
 
-            if (Platform.AArch64.class.isInstance(targetPlatform)) {
-                cmd.add("-march=arm64");
-            }
             if (SubstrateOptions.MultiThreaded.getValue()) {
-                String llcLibrary;
-                switch (OS.getCurrent()) {
-                    case LINUX:
-                        llcLibrary = "Graal86.so";
+//                String llcLibraryName;
+//                switch (arch) {
+//                    case AMD64:
+//                        llcLibraryName = "Graal86";
+//                        break;
+//                    case AArch64:
+//                        llcLibraryName = "GrArch64";
+//                        break;
+//                    default:
+//                        throw unsupportedFeature("Unknown target");
+//                }
+//                String llcLibrary;
+//                switch (OS.getCurrent()) {
+//                    case LINUX:
+//                        llcLibrary = llcLibraryName + ".so";
+//                        break;
+//                    case DARWIN:
+//                        llcLibrary = llcLibraryName + ".dylib";
+//                        break;
+//                    default:
+//                        throw unsupportedFeature("Only Linux and macOS are supported by the LLVM backend");
+//                }
+//                cmd.add("-load=/Users/loicottet/Projects/graal/llclib/" + llcLibrary);
+
+                switch (arch) {
+                    case AMD64:
+                        cmd.add("-march=graal86-64");
+                        cmd.add("-no-graal86-call-frame-opt");
                         break;
-                    case DARWIN:
-                        llcLibrary = "Graal86.dylib";
+                    case AArch64:
+                        cmd.add("-march=grarch64");
                         break;
-                    default:
-                        throw unsupportedFeature("Only Linux and macOS are supported by the LLVM backend");
                 }
-                cmd.add("-load=/Users/loicottet/Projects/graal/llclib/" + llcLibrary);
-                cmd.add("-march=graal86-64");
                 cmd.add("-mattr=graal-thread-pointer");
-                cmd.add("-no-graal86-call-frame-opt");
             } else {
-                if (Platform.AMD64.class.isInstance(targetPlatform)) {
-                    /* X86 call frame optimization causes variable sized stack frames */
-                    cmd.add("-no-x86-call-frame-opt");
+                switch (arch) {
+                    case AMD64:
+                        /* X86 call frame optimization causes variable sized stack frames */
+                        cmd.add("-no-x86-call-frame-opt");
+                        break;
+                    case AArch64:
+                        cmd.add("-march=arm64");
+                        break;
                 }
             }
 
