@@ -179,7 +179,7 @@ public class LLVMIRBuilder {
         return getLLVMType(kind.getStackKind());
     }
 
-    LLVMTypeRef getLLVMType(JavaKind kind) {
+    public LLVMTypeRef getLLVMType(JavaKind kind) {
         switch (kind) {
             case Boolean:
                 return booleanType();
@@ -639,6 +639,10 @@ public class LLVMIRBuilder {
         System.arraycopy(liveValues, 0, allArgs, 2, liveValues.length);
 
         buildIntrinsicCall("llvm.experimental.stackmap", stackmapType, allArgs);
+    }
+
+    public LLVMValueRef buildVaArg(LLVMValueRef vaList, LLVMTypeRef type) {
+        return LLVM.LLVMBuildVAArg(builder, vaList, type, DEFAULT_INSTR_NAME);
     }
 
     public void buildDebugtrap() {

@@ -544,7 +544,7 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
         return (Value) valueMap.get(node);
     }
 
-    private LLVMValueRef llvmOperand(Node node) {
+    public LLVMValueRef llvmOperand(Node node) {
         assert valueMap.containsKey(node);
         return valueMap.get(node).get();
     }

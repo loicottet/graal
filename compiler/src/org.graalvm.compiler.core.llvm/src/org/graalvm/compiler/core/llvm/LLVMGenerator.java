@@ -1037,6 +1037,13 @@ public class LLVMGenerator implements LIRGeneratorTool {
         return new LLVMVariable(builder.buildPtrToInt(returnAddress, builder.longType()));
     }
 
+    @Override
+    public Value emitNextVaArg(Value vaList, JavaKind kind) {  /* TODO probably not the right list */
+        LLVMValueRef list = builder.buildIntToPtr(getVal(vaList), builder.rawPointerType());
+        LLVMValueRef arg = builder.buildVaArg(list, builder.getLLVMType(kind));
+        return new LLVMVariable(arg);
+    }
+
     public LLVMGenerationResult getLLVMResult() {
         return generationResult;
     }

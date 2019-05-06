@@ -25,6 +25,8 @@
 package com.oracle.svm.core.graal.llvm;
 
 import static com.oracle.svm.core.SubstrateOptions.CompilerBackend;
+import static org.graalvm.compiler.nodeinfo.NodeCycles.CYCLES_8;
+import static org.graalvm.compiler.nodeinfo.NodeSize.SIZE_8;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -32,8 +34,30 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import com.oracle.svm.core.graal.meta.RuntimeConfiguration;
+import com.oracle.svm.core.graal.nodes.VaListNextArgNode;
+import com.oracle.svm.core.graal.snippets.NodeLoweringProvider;
+import jdk.vm.ci.meta.JavaKind;
+import org.bytedeco.javacpp.LLVM;
+import org.graalvm.compiler.api.replacements.SnippetReflectionProvider;
+import org.graalvm.compiler.core.common.type.Stamp;
+import org.graalvm.compiler.core.common.type.StampFactory;
+import org.graalvm.compiler.core.llvm.LLVMGenerator;
+import org.graalvm.compiler.core.llvm.LLVMIRBuilder;
 import org.graalvm.compiler.core.llvm.LLVMUtils;
+import org.graalvm.compiler.core.llvm.NodeLLVMBuilder;
+import org.graalvm.compiler.debug.DebugHandlersFactory;
+import org.graalvm.compiler.graph.Node;
+import org.graalvm.compiler.graph.NodeClass;
+import org.graalvm.compiler.nodeinfo.NodeInfo;
+import org.graalvm.compiler.nodes.FixedWithNextNode;
+import org.graalvm.compiler.nodes.ValueNode;
+import org.graalvm.compiler.nodes.spi.LIRLowerable;
+import org.graalvm.compiler.nodes.spi.LoweringTool;
+import org.graalvm.compiler.nodes.spi.NodeLIRBuilderTool;
+import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.phases.util.Providers;
 import org.graalvm.compiler.replacements.Snippets;
 import org.graalvm.nativeimage.hosted.Feature;
@@ -99,6 +123,40 @@ public class LLVMFeature implements Feature, GraalFeature, Snippets {
             }
         });
     }
+
+//    @Override
+//    public void registerLowerings(RuntimeConfiguration runtimeConfig, OptionValues options, Iterable<DebugHandlersFactory> factories, Providers providers, SnippetReflectionProvider snippetReflection, Map<Class<? extends Node>, NodeLoweringProvider<?>> lowerings, boolean hosted) {
+//        lowerings.put(VaListNextArgNode.class, new LLVMVaListLowering());
+//    }
+
+//    private static class LLVMVaListLowering implements NodeLoweringProvider<VaListNextArgNode> {
+//
+//        @Override
+//        public void lower(VaListNextArgNode node, LoweringTool tool) {
+//            node.graph().replaceFixedWithFixed(node, new LLVMVaListNextArgNode(node.getVaList(), node.getStackKind()));
+//        }
+//    }
+//
+//    @NodeInfo(size = SIZE_8, cycles = CYCLES_8)
+//    private static class LLVMVaListNextArgNode extends FixedWithNextNode implements LIRLowerable {
+//        public static final NodeClass<LLVMVaListNextArgNode> TYPE = NodeClass.create(LLVMVaListNextArgNode.class);
+//
+//        @Input protected ValueNode vaList;
+//
+//        public LLVMVaListNextArgNode(ValueNode vaList, JavaKind kind) {
+//            super(TYPE, StampFactory.forKind(kind));
+//            this.vaList = vaList;
+//        }
+//
+//        @Override
+//        public void generate(NodeLIRBuilderTool generator) {
+//            LLVMIRBuilder builder = ((NodeLLVMBuilder) generator).getLIRGeneratorTool().getBuilder();
+//
+//            LLVM.LLVMValueRef list = ((NodeLLVMBuilder) generator).llvmOperand(vaList);
+//            LLVM.LLVMValueRef arg = builder.buildVaArg(list, builder.getLLVMType(getStackKind()));
+//            generator.setResult(this, new LLVMUtils.LLVMVariable(arg));
+//        }
+//    }
 
     private static void checkLLVMVersion() {
         List<String> supportedVersions = Arrays.asList("6.0.0", "6.0.1");
@@ -182,22 +240,22 @@ class LLVMAArch64Feature implements Feature {
         ImageSingletons.add(LLVMUtils.LLVMInlineAsmSnippets.class, new LLVMUtils.LLVMInlineAsmSnippets() {
             @Override
             public String getRegisterSnippet(String registerName) {
-                return "MOV $0, " + registerName;
+                return "MOV $0, " + registerName.replace("r", "x");
             }
 
             @Override
             public String setRegisterSnippet(String registerName) {
-                return "MOV " + registerName + ", $0";
+                return "MOV " + registerName.replace("r", "x") + ", $0";
             }
 
             @Override
             public String addRegisterSnippet(String registerName) {
-                return "ADD $0, " + registerName + ", $0";
+                return "ADD $0, " + registerName.replace("r", "x") + ", $0";
             }
 
             @Override
             public String subRegisterSnippet(String registerName) {
-                return "SUB $0, " + registerName + ", $0";
+                return "SUB $0, " + registerName.replace("r", "x") + ", $0";
             }
 
             @Override

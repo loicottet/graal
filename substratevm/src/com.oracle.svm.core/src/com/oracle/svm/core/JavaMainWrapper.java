@@ -123,6 +123,7 @@ public class JavaMainWrapper {
     @CEntryPoint
     @CEntryPointOptions(prologue = EnterCreateIsolatePrologue.class, include = CEntryPointOptions.NotIncludedAutomatically.class)
     public static int run(int paramArgc, CCharPointerPointer paramArgv) throws Exception {
+        System.err.println("In run");
         JavaThreads.singleton().assignJavaThread(preallocatedThread, true);
 
         JavaMainWrapper.argc = paramArgc;
