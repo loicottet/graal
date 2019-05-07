@@ -47,6 +47,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import com.oracle.svm.core.OS;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.LLVM;
 import org.bytedeco.javacpp.LLVM.LLVMMemoryBufferRef;
@@ -456,7 +457,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             }
 
             List<String> cmd = new ArrayList<>();
-            if (SubstrateOptions.MultiThreaded.getValue()) {
+            if (SubstrateOptions.MultiThreaded.getValue() && arch == LLVMUtils.Target.AArch64) {
                 cmd.add("/Users/loicottet/Projects/graal/llclib/llc-aarch64");
             } else {
                 cmd.add("llc");
@@ -464,29 +465,32 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             cmd.add("-relocation-model=pic");
 
             if (SubstrateOptions.MultiThreaded.getValue()) {
-//                String llcLibraryName;
-//                switch (arch) {
-//                    case AMD64:
-//                        llcLibraryName = "Graal86";
-//                        break;
-//                    case AArch64:
-//                        llcLibraryName = "GrArch64";
-//                        break;
-//                    default:
-//                        throw unsupportedFeature("Unknown target");
-//                }
-//                String llcLibrary;
-//                switch (OS.getCurrent()) {
-//                    case LINUX:
-//                        llcLibrary = llcLibraryName + ".so";
-//                        break;
-//                    case DARWIN:
-//                        llcLibrary = llcLibraryName + ".dylib";
-//                        break;
-//                    default:
-//                        throw unsupportedFeature("Only Linux and macOS are supported by the LLVM backend");
-//                }
-//                cmd.add("-load=/Users/loicottet/Projects/graal/llclib/" + llcLibrary);
+                String llcLibraryName;
+                switch (arch) {
+                    case AMD64:
+                        llcLibraryName = "Graal86";
+                        break;
+                    case AArch64:
+                        llcLibraryName = "GrArch64";
+                        break;
+                    default:
+                        throw unsupportedFeature("Unknown target");
+                }
+                String llcLibrary;
+                switch (OS.getCurrent()) {
+                    case LINUX:
+                        llcLibrary = llcLibraryName + ".so";
+                        break;
+                    case DARWIN:
+                        llcLibrary = llcLibraryName + ".dylib";
+                        break;
+                    default:
+                        throw unsupportedFeature("Only Linux and macOS are supported by the LLVM backend");
+                }
+
+                if (arch != LLVMUtils.Target.AArch64) {
+                    cmd.add("-load=/Users/loicottet/Projects/graal/llclib/" + llcLibrary);
+                }
 
                 switch (arch) {
                     case AMD64:
