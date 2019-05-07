@@ -102,7 +102,8 @@ public class SubstrateNodeLLVMBuilder extends NodeLLVMBuilder implements Substra
         builder.buildStore(builder.constantNull(builder.rawPointerType()), lastIPAddr); /* TODO store actual address */
 
         LLVMValueRef lastSPAddr = builder.buildGEP(anchor, builder.constantInt(runtimeConfiguration.getJavaFrameAnchorLastSPOffset()));
-        builder.buildStore(builder.buildReadRegister(builder.register("rsp")), lastSPAddr);
+        Register stackPointer = gen.getRegisterConfig().getFrameRegister();
+        builder.buildStore(builder.buildReadRegister(builder.register(stackPointer.name)), lastSPAddr);
 
         if (SubstrateOptions.MultiThreaded.getValue()) {
             LLVMValueRef threadLocalArea = builder.buildInlineGetRegister(runtimeConfiguration.getThreadRegister().name);

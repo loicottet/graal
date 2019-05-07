@@ -264,6 +264,11 @@ class LLVMAArch64Feature implements Feature {
             }
 
             @Override
+            public String jumpSnippet() {
+                return "BR $0";
+            }
+
+            @Override
             public String pauseSnippet() {
                 return "NOP";
             }

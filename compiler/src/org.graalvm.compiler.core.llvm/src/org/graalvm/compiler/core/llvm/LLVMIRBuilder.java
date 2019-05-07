@@ -568,8 +568,8 @@ public class LLVMIRBuilder {
 
     LLVMValueRef buildCall(LLVMValueRef callee, long statepointId, CallingConvention.Type callType, LLVMValueRef... args) {
         LLVMValueRef result;
-        LLVMValueRef call;
         if (Platform.includedIn(Platform.AMD64.class)) {
+            LLVMValueRef call;
             if (trackPointers) {
                 result = call = buildCall(callee, args);
                 addCallSiteAttribute(result, "statepoint-id", Long.toString(statepointId));
@@ -593,12 +593,12 @@ public class LLVMIRBuilder {
                 LLVMTypeRef gcResultType = functionType(resultType, tokenType());
                 result = buildIntrinsicCall("llvm.experimental.gc.result." + intrinsicType(resultType), gcResultType, token);
             }
+
+            setCallCallingConvention(call, callingConvention(callType));
         } else {
-            result = call = buildCall(callee, args);
+            result = buildCall(callee, args);
             buildStackmap(constantLong(statepointId));
         }
-
-        setCallCallingConvention(call, callingConvention(callType));
 
         return result;
     }
