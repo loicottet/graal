@@ -185,7 +185,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             sortedMethodOffsets.remove(gcRegisterOffset);
         }
         textSymbolOffsets.forEach((symbol, offset) -> {
-            if (symbol.startsWith(symbolPrefix + "asm_")) {
+            if (symbol.startsWith(symbolPrefix + "asm_") || symbol.startsWith(symbolPrefix + "__svm_jni_wrapper_")) {
                 sortedMethodOffsets.remove(offset);
             }
         });
@@ -218,7 +218,8 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             CompilationResult compilation = entry.getValue();
             long startPatchpointID = compilation.getInfopoints().stream().filter(ip -> ip.reason == InfopointReason.METHOD_START).findFirst()
                             .orElseThrow(() -> new GraalError("no method start infopoint: " + methodSymbolName)).pcOffset;
-            compilation.setTotalFrameSize(NumUtil.safeToInt(info.getFunctionStackSize(startPatchpointID) + FrameAccess.returnAddressSize()));
+            int totalFrameSize = NumUtil.safeToInt(info.getFunctionStackSize(startPatchpointID) + FrameAccess.returnAddressSize());
+            compilation.setTotalFrameSize(totalFrameSize);
 
             int nextFunctionStartOffset = sortedMethodOffsets.get(sortedMethodOffsets.indexOf(offset) + 1);
             int functionSize = nextFunctionStartOffset - offset;
@@ -233,7 +234,10 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
                 patchpointsDump.append(offset);
                 patchpointsDump.append("..");
                 patchpointsDump.append(functionSize);
-                patchpointsDump.append("]\n");
+                patchpointsDump.append("]");
+                patchpointsDump.append("(");
+                patchpointsDump.append(totalFrameSize);
+                patchpointsDump.append(")\n");
             }
 
             List<Infopoint> newInfopoints = new ArrayList<>();
@@ -369,12 +373,23 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
                     throw new GraalError(e);
                 }
 
-                return bitcodePath;
+                if (LLVMOptions.CompileLLVMParallel.getValue()) {
+                    String optPath = basePath.resolve("llvm_" + id + "_opt.bc").toString();
+                    String nativePath = basePath.resolve("llvm_" + id + ".o").toString();
+
+                    llvmOptimize(debug, optPath, bitcodePath);
+                    llvmCompile(debug, nativePath, optPath);
+
+                    return nativePath;
+                } else {
+                    return bitcodePath;
+                }
             }).collect(Collectors.toList());
         }
 
         /* Compile LLVM */
-        Path linkedBitcodePath = basePath.resolve("llvm.bc");
+        String linkedExtension = LLVMOptions.CompileLLVMParallel.getValue() ? ".o" : ".bc";
+        Path linkedPath = basePath.resolve("llvm" + linkedExtension);
         try (StopTimer t = new Timer(imageName, "(link)").start()) {
             int maxThreads = NativeImageOptions.getMaximumNumberOfConcurrentThreads(ImageSingletons.lookup(HostedOptionValues.class));
             int numBatches = Math.max(maxThreads, paths.size() / BATCH_SIZE + ((paths.size() % BATCH_SIZE == 0) ? 0 : 1));
@@ -388,27 +403,39 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             List<String> batchPaths = batchInputLists.parallelStream()
                             .filter(inputList -> !inputList.isEmpty())
                             .map(batchInputs -> {
-                                String batchOutputPath = basePath.resolve("llvm_batch" + batchNum.incrementAndGet() + ".bc").toString();
+                                String batchOutputPath = basePath.resolve("llvm_batch" + batchNum.incrementAndGet() + linkedExtension).toString();
 
-                                llvmLink(debug, batchOutputPath, batchInputs);
+                                if (LLVMOptions.CompileLLVMParallel.getValue()) {
+                                    nativeLink(debug, batchOutputPath, batchInputs);
+                                } else {
+                                    llvmLink(debug, batchOutputPath, batchInputs);
+                                }
 
                                 return batchOutputPath;
                             }).collect(Collectors.toList());
 
-            llvmLink(debug, linkedBitcodePath.toString(), batchPaths);
+            if (LLVMOptions.CompileLLVMParallel.getValue()) {
+                nativeLink(debug, linkedPath.toString(), batchPaths);
+            } else {
+                llvmLink(debug, linkedPath.toString(), batchPaths);
+            }
         }
 
-        Path optimizedBitcodePath = basePath.resolve("llvm_opt.bc");
-        try (StopTimer t = new Timer(imageName, "(gc)").start()) {
-            llvmOptimize(debug, optimizedBitcodePath.toString(), linkedBitcodePath.toString());
-        }
+        if (LLVMOptions.CompileLLVMParallel.getValue()) {
+            return linkedPath;
+        } else {
+            Path optimizedBitcodePath = basePath.resolve("llvm_opt.bc");
+            try (StopTimer t = new Timer(imageName, "(gc)").start()) {
+                llvmOptimize(debug, optimizedBitcodePath.toString(), linkedPath.toString());
+            }
 
-        Path outputPath = basePath.resolve("llvm.o");
-        try (StopTimer t = new Timer(imageName, "(llvm)").start()) {
-            llvmCompile(debug, outputPath.toString(), optimizedBitcodePath.toString());
-        }
+            Path outputPath = basePath.resolve("llvm.o");
+            try (StopTimer t = new Timer(imageName, "(llvm)").start()) {
+                llvmCompile(debug, outputPath.toString(), optimizedBitcodePath.toString());
+            }
 
-        return outputPath;
+            return outputPath;
+        }
     }
 
     private void llvmOptimize(DebugContext debug, String outputPath, String inputPath) {
@@ -422,8 +449,8 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             if (Platform.AMD64.class.isInstance(targetPlatform)) {
                 cmd.add("-mem2reg");
                 cmd.add("-rewrite-statepoints-for-gc");
-                cmd.add("-always-inline");
             }
+            cmd.add("-always-inline");
             cmd.add("-o");
             cmd.add(outputPath);
             cmd.add(inputPath);
@@ -558,6 +585,33 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
                 System.out.println(output.toString());
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM linking failed into " + outputPath + ": " + status);
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new GraalError(e);
+        }
+    }
+
+    private static void nativeLink(DebugContext debug, String outputPath, List<String> inputPaths) {
+        try {
+            List<String> cmd = new ArrayList<>();
+            cmd.add("ld");
+            cmd.add("-r");
+            cmd.add("-o");
+            cmd.add(outputPath);
+            cmd.addAll(inputPaths);
+
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+
+            OutputStream output = new ByteArrayOutputStream();
+            FileUtils.drainInputStream(p.getInputStream(), output);
+
+            int status = p.waitFor();
+            if (status != 0) {
+                System.out.println(output.toString());
+                debug.log("%s", output.toString());
+                throw new GraalError("Native linking failed into " + outputPath + ": " + status);
             }
         } catch (IOException | InterruptedException e) {
             throw new GraalError(e);

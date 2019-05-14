@@ -160,7 +160,7 @@ public class LLVMGenerator implements LIRGeneratorTool {
         return basicBlockMap.get(begin);
     }
 
-    LLVMBasicBlockRef getBlockEnd(Block block) {
+    public LLVMBasicBlockRef getBlockEnd(Block block) {
         return (splitBlockEndMap.containsKey(block)) ? splitBlockEndMap.get(block) : getBlock(block);
     }
 

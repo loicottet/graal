@@ -28,13 +28,17 @@ import static com.oracle.svm.core.graal.code.SubstrateBackend.getJavaFrameAnchor
 import static com.oracle.svm.core.graal.code.SubstrateBackend.hasJavaFrameAnchor;
 
 import com.oracle.svm.core.meta.SharedMethod;
+import org.bytedeco.javacpp.LLVM;
 import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 import org.graalvm.compiler.core.llvm.LLVMGenerator;
+import org.graalvm.compiler.core.llvm.LLVMIRBuilder;
 import org.graalvm.compiler.core.llvm.LLVMUtils;
 import org.graalvm.compiler.core.llvm.NodeLLVMBuilder;
 import org.graalvm.compiler.lir.Variable;
 import org.graalvm.compiler.nodes.CallTargetNode;
+import org.graalvm.compiler.nodes.Invoke;
 import org.graalvm.compiler.nodes.LogicNode;
+import org.graalvm.compiler.nodes.LoweredCallTargetNode;
 import org.graalvm.compiler.nodes.StructuredGraph;
 
 import com.oracle.svm.core.SubstrateOptions;
@@ -50,6 +54,7 @@ import com.oracle.svm.core.thread.Safepoint;
 import com.oracle.svm.core.thread.VMThreads;
 
 import jdk.vm.ci.code.Register;
+import org.graalvm.compiler.nodes.cfg.Block;
 
 public class SubstrateNodeLLVMBuilder extends NodeLLVMBuilder implements SubstrateNodeLIRBuilder {
     private long nextCGlobalId = 0L;
@@ -90,16 +95,13 @@ public class SubstrateNodeLLVMBuilder extends NodeLLVMBuilder implements Substra
     }
 
     @Override
-    protected void emitInvokeIntermediate(CallTargetNode callTarget) {
+    protected LLVMValueRef emitCall(Invoke i, LoweredCallTargetNode callTarget, LLVMValueRef callee, long patchpointId, LLVMValueRef... args) {
         if (!hasJavaFrameAnchor(callTarget)) {
-            return;
+            return super.emitCall(i, callTarget, callee, patchpointId, args);
         }
 
         LLVMValueRef anchor = llvmOperand(getJavaFrameAnchor(callTarget));
         anchor = builder.buildIntToPtr(anchor, builder.rawPointerType());
-
-        LLVMValueRef lastIPAddr = builder.buildGEP(anchor, builder.constantInt(runtimeConfiguration.getJavaFrameAnchorLastIPOffset()));
-        builder.buildStore(builder.constantNull(builder.rawPointerType()), lastIPAddr); /* TODO store actual address */
 
         LLVMValueRef lastSPAddr = builder.buildGEP(anchor, builder.constantInt(runtimeConfiguration.getJavaFrameAnchorLastSPOffset()));
         Register stackPointer = gen.getRegisterConfig().getFrameRegister();
@@ -111,6 +113,14 @@ public class SubstrateNodeLLVMBuilder extends NodeLLVMBuilder implements Substra
             LLVMValueRef statusAddress = builder.buildGEP(builder.buildIntToPtr(threadLocalArea, builder.rawPointerType()), statusIndex);
             builder.buildStore(builder.constantInt(VMThreads.StatusSupport.STATUS_IN_NATIVE), statusAddress);
         }
+
+        LLVMValueRef wrapper = builder.createJNIWrapper(callee, patchpointId, args.length, runtimeConfiguration.getJavaFrameAnchorLastIPOffset(), gen.getBlockEnd((Block) gen.getCurrentBlock()));
+
+        LLVMValueRef[] newArgs = new LLVMValueRef[args.length + 2];
+        newArgs[0] = anchor;
+        newArgs[1] = callee;
+        System.arraycopy(args, 0, newArgs, 2, args.length);
+        return super.emitCall(i, callTarget, wrapper, patchpointId, newArgs);
     }
 
     @Override

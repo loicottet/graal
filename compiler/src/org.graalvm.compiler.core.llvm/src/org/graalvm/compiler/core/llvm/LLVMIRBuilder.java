@@ -104,7 +104,7 @@ public class LLVMIRBuilder {
 
     /* Functions */
 
-    LLVMValueRef addFunction(String name, LLVMTypeRef type) {
+    public LLVMValueRef addFunction(String name, LLVMTypeRef type) {
         return LLVM.LLVMAddFunction(module, name, type);
     }
 
@@ -167,7 +167,37 @@ public class LLVMIRBuilder {
         }
     }
 
-    LLVMBasicBlockRef appendBasicBlock(String name, LLVMValueRef func) {
+    public LLVMValueRef createJNIWrapper(LLVMValueRef callee, long statepointId, int numArgs, int anchorIPOffset, LLVMBasicBlockRef currentBlock) {
+        LLVM.LLVMTypeRef calleeType = LLVMIRBuilder.getElementType(LLVMIRBuilder.typeOf(callee));
+        LLVM.LLVMTypeRef wrapperType = prependArguments(calleeType, rawPointerType(), LLVMIRBuilder.typeOf(callee));
+        LLVMValueRef transitionWrapper = addFunction("__svm_jni_wrapper_" + statepointId, wrapperType);
+
+        LLVM.LLVMBasicBlockRef block = appendBasicBlock("main", transitionWrapper);
+        positionAtEnd(block);
+
+        LLVMValueRef anchor = getParam(transitionWrapper, 0);
+        LLVMValueRef lastIPAddr = buildGEP(anchor, constantInt(anchorIPOffset));
+        LLVMValueRef callIP = buildReturnAddress(constantInt(0));
+        buildStore(callIP, lastIPAddr);
+
+        LLVMValueRef[] args = new LLVMValueRef[numArgs];
+        for (int i = 0; i < numArgs; ++i) {
+            args[i] = getParam(transitionWrapper, i + 2);
+        }
+        LLVMValueRef target = getParam(transitionWrapper, 1);
+        LLVMValueRef ret = buildCall(target, args);
+
+        if (isVoidType(getReturnType(calleeType))) {
+            buildRetVoid();
+        } else {
+            buildRet(ret);
+        }
+
+        positionAtEnd(currentBlock);
+        return transitionWrapper;
+    }
+
+    public LLVMBasicBlockRef appendBasicBlock(String name, LLVMValueRef func) {
         return LLVM.LLVMAppendBasicBlockInContext(context, func, name);
     }
 
@@ -228,7 +258,7 @@ public class LLVMIRBuilder {
         }
     }
 
-    static LLVMTypeRef typeOf(LLVMValueRef value) {
+    public static LLVMTypeRef typeOf(LLVMValueRef value) {
         return LLVM.LLVMTypeOf(value);
     }
 
@@ -282,6 +312,10 @@ public class LLVMIRBuilder {
         return tracked ? LLVMUtils.TRACKED_POINTER_ADDRESS_SPACE : LLVMUtils.UNTRACKED_POINTER_ADDRESS_SPACE;
     }
 
+    public static LLVMTypeRef getElementType(LLVMTypeRef pointerType) {
+        return LLVM.LLVMGetElementType(pointerType);
+    }
+
     public LLVMTypeRef objectType() {
         return pointerType(byteType(), true);
     }
@@ -315,6 +349,22 @@ public class LLVMIRBuilder {
         PointerPointer<LLVMTypeRef> argTypesPointer = new PointerPointer<>(numParams);
         LLVM.LLVMGetParamTypes(functionType, argTypesPointer);
         return IntStream.range(0, numParams).mapToObj(i -> argTypesPointer.get(LLVMTypeRef.class, i)).toArray(LLVMTypeRef[]::new);
+    }
+
+    private static boolean isFunctionVarArg(LLVMTypeRef functionType) {
+        return LLVM.LLVMIsFunctionVarArg(functionType) == TRUE;
+    }
+
+    public LLVMTypeRef prependArguments(LLVMTypeRef functionType, LLVMTypeRef... typesToAdd) {
+        LLVMTypeRef returnType = getReturnType(functionType);
+        boolean varargs = isFunctionVarArg(functionType);
+        LLVMTypeRef[] oldTypes = getParamTypes(functionType);
+
+        LLVMTypeRef[] newTypes = new LLVMTypeRef[oldTypes.length + typesToAdd.length];
+        System.arraycopy(typesToAdd, 0, newTypes, 0, typesToAdd.length);
+        System.arraycopy(oldTypes, 0, newTypes, typesToAdd.length, oldTypes.length);
+
+        return functionType(returnType, varargs, newTypes);
     }
 
     LLVMTypeRef voidType() {
@@ -474,7 +524,7 @@ public class LLVMIRBuilder {
         return LLVM.LLVMGetParam(func, index);
     }
 
-    LLVMValueRef getParam(int index) {
+    public LLVMValueRef getParam(int index) {
         return getParam(function, index);
     }
 
@@ -975,7 +1025,7 @@ public class LLVMIRBuilder {
         return LLVM.LLVMBuildGEP(builder, base, new PointerPointer<>(indices), indices.length, DEFAULT_INSTR_NAME);
     }
 
-    LLVMValueRef buildLoad(LLVMValueRef address, LLVMTypeRef type) {
+    public LLVMValueRef buildLoad(LLVMValueRef address, LLVMTypeRef type) {
         LLVMTypeRef addressType = LLVM.LLVMTypeOf(address);
         LLVMTypeRef pointedType = type;
         boolean postRegister = false;
@@ -991,7 +1041,7 @@ public class LLVMIRBuilder {
         return loadedValue;
     }
 
-    LLVMValueRef buildLoad(LLVMValueRef address) {
+    public LLVMValueRef buildLoad(LLVMValueRef address) {
         return LLVM.LLVMBuildLoad(builder, address, DEFAULT_INSTR_NAME);
     }
 

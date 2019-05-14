@@ -390,7 +390,6 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
         LoweredCallTargetNode callTarget = (LoweredCallTargetNode) i.callTarget();
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
         NodeInputList<ValueNode> arguments = callTarget.arguments();
-        CallingConvention.Type callType = callTarget.callType();
 
         LLVMValueRef callee;
         LLVMValueRef[] args;
@@ -428,9 +427,13 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
             throw shouldNotReachHere();
         }
 
-        emitInvokeIntermediate(callTarget);
+        LLVMValueRef call = emitCall(i, callTarget, callee, patchpointId, args);
+        setResult(i.asNode(), call);
+    }
 
+    protected LLVMValueRef emitCall(Invoke i, LoweredCallTargetNode callTarget, LLVMValueRef callee, long patchpointId, LLVMValueRef... args) {
         LLVMValueRef call;
+        CallingConvention.Type callType = callTarget.callType();
         if (i instanceof InvokeWithExceptionNode) {
             InvokeWithExceptionNode invokeWithExceptionNode = (InvokeWithExceptionNode) i;
             LLVMBasicBlockRef successor = gen.getBlock(invokeWithExceptionNode.next());
@@ -456,12 +459,7 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool {
         } else {
             call = builder.buildCall(callee, patchpointId, callType, args);
         }
-
-        setResult(i.asNode(), call);
-    }
-
-    protected void emitInvokeIntermediate(CallTargetNode callTarget) {
-        throw unimplemented();
+        return call;
     }
 
     @Override
