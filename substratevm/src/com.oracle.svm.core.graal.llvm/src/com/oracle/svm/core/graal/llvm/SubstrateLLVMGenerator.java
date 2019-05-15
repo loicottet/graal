@@ -39,6 +39,7 @@ import org.graalvm.compiler.core.llvm.LLVMGenerationResult;
 import org.graalvm.compiler.core.llvm.LLVMGenerator;
 import org.graalvm.compiler.core.llvm.LLVMUtils.LLVMKindTool;
 import org.graalvm.compiler.phases.util.Providers;
+import org.graalvm.nativeimage.Platform;
 import org.graalvm.util.GuardedAnnotationAccess;
 
 import com.oracle.svm.core.SubstrateUtil;
@@ -92,7 +93,13 @@ public class SubstrateLLVMGenerator extends LLVMGenerator implements SubstrateLI
         LLVMValueRef spAddr = builder.buildGEP(buffer, builder.constantInt(0), builder.constantInt(2));
         builder.buildStore(getVal(sp), spAddr);
 
-        builder.buildLongjmp(builder.buildBitcast(buffer, builder.rawPointerType()));
+        if (Platform.includedIn(Platform.AArch64.class)) {
+            LLVMValueRef ip = builder.buildLoad(builder.buildGEP(buffer, builder.constantInt(0), builder.constantInt(1)));
+            builder.buildWriteRegister(builder.register(getRegisterConfig().getFrameRegister().name), getVal(sp));
+            builder.buildInlineJump(builder.buildIntToPtr(ip, builder.rawPointerType()));
+        } else {
+            builder.buildLongjmp(builder.buildBitcast(buffer, builder.rawPointerType()));
+        }
         builder.buildUnreachable();
     }
 
