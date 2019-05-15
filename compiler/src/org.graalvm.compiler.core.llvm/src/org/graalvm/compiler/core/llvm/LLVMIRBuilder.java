@@ -593,6 +593,11 @@ public class LLVMIRBuilder {
         return buildIntrinsicCall("llvm.read_register.i64", readRegisterType, register);
     }
 
+    public void buildWriteRegister(LLVMValueRef register, LLVMValueRef value) {
+        LLVMTypeRef writeRegisterType = functionType(voidType(), metadataType(), longType());
+        buildIntrinsicCall("llvm.write_register.i64", writeRegisterType, register, value);
+    }
+
     LLVMValueRef buildExtractValue(LLVMValueRef struct, int i) {
         return LLVM.LLVMBuildExtractValue(builder, struct, i, DEFAULT_INSTR_NAME);
     }
@@ -646,8 +651,32 @@ public class LLVMIRBuilder {
 
             setCallCallingConvention(call, callingConvention(callType));
         } else {
-            result = buildCall(callee, args);
-            buildStackmap(constantLong(statepointId));
+            LLVMTypeRef returnType = getReturnType(getElementType(typeOf(callee)));
+            boolean returns = !isVoidType(returnType);
+            LLVMTypeRef patchpointType = functionType(returns ? longType() : voidType(), true, longType(), intType(), rawPointerType(), intType());
+
+            LLVMValueRef[] patchpointArgs = new LLVMValueRef[args.length + 4];
+            patchpointArgs[0] = constantLong(statepointId);
+            patchpointArgs[1] = constantInt(4); /* numPatchBytes TODO this is ARM-specific */
+            patchpointArgs[2] = buildBitcast(callee, rawPointerType());
+            patchpointArgs[3] = constantInt(args.length);
+            System.arraycopy(args, 0, patchpointArgs, 4, args.length);
+
+            result = buildIntrinsicCall("llvm.experimental.patchpoint." + (returns ? "i64" : "void"), patchpointType, patchpointArgs);
+
+            if (isVoidType(returnType)) {
+                // Do nothing
+            } else if (isPointer(returnType)) {
+                result = buildIntToPtr(result, returnType);
+            } else if (isIntegerType(returnType)) {
+                result = buildIntegerConvert(result, integerTypeWidth(returnType));
+            } else if (isFloatType(returnType)) {
+                result = buildBitcast(buildTrunc(result, 32), returnType);
+            } else if (isDoubleType(returnType)) {
+                result = buildBitcast(result, returnType);
+            } else {
+                throw shouldNotReachHere("Invalid return type");
+            }
         }
 
         return result;

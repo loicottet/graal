@@ -247,6 +247,9 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
                     /* Optimizations might have duplicated some calls. */
                     for (int actualPcOffset : info.getPatchpointOffsets(call.pcOffset)) {
+                        if (Platform.includedIn(Platform.AArch64.class)) {
+                            actualPcOffset += 4; /* Patchpoints register the address of the call, not the return */
+                        }
                         SubstrateReferenceMap referenceMap = new SubstrateReferenceMap();
                         info.forEachStatepointOffset(call.pcOffset, actualPcOffset, (o, b) -> referenceMap.markReferenceAtOffset(o, b, SubstrateOptions.SpawnIsolates.getValue()));
                         call.debugInfo.setReferenceMap(referenceMap);
@@ -275,6 +278,9 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             Map<Integer, Integer> newExceptionHandlers = new HashMap<>();
             for (ExceptionHandler handler : compilation.getExceptionHandlers()) {
                 for (int actualPCOffset : info.getPatchpointOffsets(handler.pcOffset)) {
+                    if (Platform.includedIn(Platform.AArch64.class)) {
+                        actualPCOffset += 4; /* Patchpoints register the address of the call, not the return */
+                    }
                     assert handler.handlerPos == startPatchpointID;
                     int handlerOffset = info.getAllocaOffset(handler.handlerPos);
                     assert handlerOffset >= 0 && handlerOffset < info.getFunctionStackSize(startPatchpointID);
