@@ -106,7 +106,9 @@ public class LLVMFeature implements Feature, GraalFeature {
 
     @Override
     public void afterRegistration(AfterRegistrationAccess access) {
-        checkLLVMVersion();
+        if (!LLVMOptions.CustomLLC.hasBeenSet()) {
+            checkLLVMVersion();
+        }
 
         ImageSingletons.add(SubstrateBackendFactory.class, new SubstrateBackendFactory() {
             @Override
@@ -169,9 +171,18 @@ public class LLVMFeature implements Feature, GraalFeature {
         }
     }
 
-    private static void checkLLVMVersion() {
-        List<String> supportedVersions = Arrays.asList("6.0.0", "6.0.1");
+    private static final int LLVM_MIN_SUPPORTED_MAJOR_VERSION = 8;
 
+    private static void checkLLVMVersion() {
+        String installedVersion = getLLVMMajorVersion();
+        int majorVersion = Integer.parseInt(installedVersion.split("\\.")[0]);
+
+        if (majorVersion < LLVM_MIN_SUPPORTED_MAJOR_VERSION) {
+            throw UserError.abort("Unsupported LLVM version: " + installedVersion + ". Only LLVM " + LLVM_MIN_SUPPORTED_MAJOR_VERSION + " and above are supported");
+        }
+    }
+
+    private static String getLLVMMajorVersion() {
         int status;
         String output = null;
         try (OutputStream os = new ByteArrayOutputStream()) {
@@ -193,9 +204,8 @@ public class LLVMFeature implements Feature, GraalFeature {
         if (status != 0) {
             throw UserError.abort("Using the LLVM backend requires LLVM to be installed on your machine.");
         }
-        if (!supportedVersions.contains(output)) {
-            throw UserError.abort("Unsupported LLVM version: " + output + ". Supported versions are: [" + String.join(", ", supportedVersions) + "]");
-        }
+
+        return output;
     }
 }
 

@@ -37,15 +37,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.bytedeco.javacpp.LLVM;
-import org.bytedeco.javacpp.LLVM.LLVMAttributeRef;
-import org.bytedeco.javacpp.LLVM.LLVMBasicBlockRef;
-import org.bytedeco.javacpp.LLVM.LLVMBuilderRef;
-import org.bytedeco.javacpp.LLVM.LLVMContextRef;
-import org.bytedeco.javacpp.LLVM.LLVMModuleRef;
-import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
-import org.bytedeco.javacpp.LLVM.LLVMValueRef;
 import org.bytedeco.javacpp.PointerPointer;
+import org.bytedeco.llvm.LLVM.LLVMAttributeRef;
+import org.bytedeco.llvm.LLVM.LLVMBasicBlockRef;
+import org.bytedeco.llvm.LLVM.LLVMBuilderRef;
+import org.bytedeco.llvm.LLVM.LLVMContextRef;
+import org.bytedeco.llvm.LLVM.LLVMModuleRef;
+import org.bytedeco.llvm.LLVM.LLVMTypeRef;
+import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.global.LLVM;
 import org.graalvm.compiler.core.common.calc.Condition;
 import org.graalvm.compiler.core.llvm.LLVMUtils.TargetSpecific;
 
@@ -161,13 +161,13 @@ public class LLVMIRBuilder {
      */
     @SuppressWarnings("unused")
     public LLVMValueRef createJNIWrapper(LLVMValueRef callee, long statepointId, int numArgs, int anchorIPOffset, LLVMBasicBlockRef currentBlock) {
-        LLVM.LLVMTypeRef calleeType = LLVMIRBuilder.getElementType(typeOf(callee));
-        LLVM.LLVMTypeRef wrapperType = prependArguments(calleeType, rawPointerType(), typeOf(callee));
+        LLVMTypeRef calleeType = LLVMIRBuilder.getElementType(typeOf(callee));
+        LLVMTypeRef wrapperType = prependArguments(calleeType, rawPointerType(), typeOf(callee));
         LLVMValueRef transitionWrapper = addFunction(LLVMUtils.JNI_WRAPPER_PREFIX + intrinsicType(calleeType), wrapperType);
         LLVM.LLVMSetLinkage(transitionWrapper, LLVM.LLVMLinkOnceAnyLinkage);
         setAttribute(transitionWrapper, LLVM.LLVMAttributeFunctionIndex, "noinline");
 
-        LLVM.LLVMBasicBlockRef block = appendBasicBlock("main", transitionWrapper);
+        LLVMBasicBlockRef block = appendBasicBlock("main", transitionWrapper);
         positionAtEnd(block);
 
         LLVMValueRef anchor = getParam(transitionWrapper, 0);
