@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.function.Function;
 
+import com.oracle.svm.core.SubstrateUtil;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.debug.Indent;
 import org.graalvm.nativeimage.Platform;
@@ -127,6 +128,11 @@ public abstract class NativeBootImageViaCC extends NativeBootImage {
 
             if (SubstrateOptions.DeleteLocalSymbols.getValue()) {
                 additionalPreOptions.add("-Wl,-x");
+            }
+
+            if (SubstrateUtil.getArchitectureName().equals("aarch64")) {
+                additionalPreOptions.add("-arch");
+                additionalPreOptions.add("arm64");
             }
         }
 
