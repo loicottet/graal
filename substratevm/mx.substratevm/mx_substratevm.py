@@ -850,13 +850,18 @@ mx_sdk.register_graalvm_component(mx_sdk.GraalVmJreComponent(
     dir_name='svm',
     license_files=[],
     third_party_license_files=[],
+    support_distributions=[
+        'substratevm:SVM_LLVM_CUSTOM_LLC',
+    ],
+    installable=True,
     builder_jar_distributions=[
         'substratevm:SVM_LLVM',
         'compiler:GRAAL_LLVM',
-        'compiler:LLVM_WRAPPER',
+        'compiler:LLVM_PRESETS',
         'compiler:JAVACPP',
         'compiler:LLVM_PLATFORM_SPECIFIC',
     ],
+    provided_executables=['bin/llc-custom']
 ))
 
 
@@ -1069,6 +1074,8 @@ def native_image_on_jvm(args, **kwargs):
     for arg in args:
         if arg == '--no-server' or arg.startswith('--server'):
             mx.warn('Ignoring server-mode native-image argument ' + arg)
+        elif arg == '--arm-target':
+            save_args.append('-H:CustomLLC=' + mx.library('LLVM_CUSTOM_LLC').get_path(True))
         else:
             save_args.append(arg)
 
