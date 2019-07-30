@@ -1056,6 +1056,15 @@ suite = {
             "maven" : False,
         },
 
+        "SVM_LLVM_CUSTOM_LLC": {
+            "native": True,
+            "platformDependent": True,
+            "description": "Custom llc executable for ARM backends",
+            "layout": {
+                "bin/": "extracted-dependency:compiler:LLVM_CUSTOM_LLC/llc-custom",
+            }
+        },
+
         "SVM_TRUFFLE_TCK" : {
             "subDir" : "src",
             "description" : "Truffle TCK",

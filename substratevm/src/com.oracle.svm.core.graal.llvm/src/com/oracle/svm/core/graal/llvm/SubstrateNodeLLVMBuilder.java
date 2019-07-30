@@ -27,8 +27,8 @@ package com.oracle.svm.core.graal.llvm;
 import static com.oracle.svm.core.graal.code.SubstrateBackend.getJavaFrameAnchor;
 import static com.oracle.svm.core.graal.code.SubstrateBackend.hasJavaFrameAnchor;
 
-import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
-import org.bytedeco.javacpp.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.LLVM.LLVMTypeRef;
+import org.bytedeco.llvm.LLVM.LLVMValueRef;
 import org.graalvm.compiler.core.common.calc.Condition;
 import org.graalvm.compiler.core.llvm.LLVMGenerator;
 import org.graalvm.compiler.core.llvm.LLVMUtils.LLVMVariable;

@@ -914,13 +914,18 @@ mx_sdk.register_graalvm_component(mx_sdk.GraalVmJreComponent(
     license_files=[],
     third_party_license_files=[],
     dependencies=['SubstrateVM'],
+    support_distributions=[
+        'substratevm:SVM_LLVM_CUSTOM_LLC',
+    ],
+    installable=True,
     builder_jar_distributions=[
         'substratevm:SVM_LLVM',
         'compiler:GRAAL_LLVM',
-        'compiler:LLVM_WRAPPER',
+        'compiler:LLVM_PRESETS',
         'compiler:JAVACPP',
         'compiler:LLVM_PLATFORM_SPECIFIC',
     ],
+    provided_executables=['bin/llc-custom']
 ))
 
 
@@ -1136,6 +1141,12 @@ def _ensure_vm_built():
 
 @mx.command(suite.name, 'native-image')
 def native_image_on_jvm(args, **kwargs):
+    save_args = []
+    for arg in args:
+        if arg == '--arm-target':
+            save_args.append('-H:CustomLLC=' + mx.library('LLVM_CUSTOM_LLC').get_path(True))
+        else:
+            save_args.append(arg)
     _ensure_vm_built()
     if mx.is_windows():
         config = graalvm_jvm_configs[-1]
@@ -1145,7 +1156,7 @@ def native_image_on_jvm(args, **kwargs):
         executable = join(vm_link, 'bin', 'native-image')
     if not exists(executable):
         mx.abort("Can not find " + executable + "\nDid you forget to build? Try `mx build`")
-    mx.run([executable, '-H:CLibraryPath=' + clibrary_libpath()] + args, **kwargs)
+    mx.run([executable, '-H:CLibraryPath=' + clibrary_libpath()] + save_args, **kwargs)
 
 
 @mx.command(suite.name, 'native-image-configure')

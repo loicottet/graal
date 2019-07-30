@@ -184,38 +184,35 @@ suite = {
       },
       "dependencies": ["JAXB_API_2.1", "ACTIVATION_1.1.1"]
     },
-    "LLVM_WRAPPER": {
-      "sha1" : "a990b2dba1c706f5c43c56fedfe70bad9a695852",
-      "sourceSha1" : "decbd95d46092fa9afaf2523b5b23d07ad7ad6bc",
+    "LLVM_PRESETS": {
+      "sha1" : "09383c4a5b4e4fb0580d2ccf8b74948fc5b26bf5",
       "dependencies" : ["JAVACPP"],
-      "maven" : {
-        "groupId" : "org.bytedeco.javacpp-presets",
-        "artifactId" : "llvm",
-        "version" : "6.0.1-1.4.2",
-      },
+      "urls": [
+        "https://oss.sonatype.org/content/repositories/snapshots/org/bytedeco/llvm/9.0.0-1.5.2-SNAPSHOT/llvm-9.0.0-1.5.2-20190926.022802-25.jar",
+      ],
       "license" : "GPLv2-CPE"
     },
     "JAVACPP": {
-      "sha1" : "cfa6a0259d98bff5aa8d41ba11b4d1dad648fbaa",
-      "sourceSha1" : "fdb2d2c17f6b91cdd5421554396da8905f0dfed2",
-      "maven" : {
-        "groupId" : "org.bytedeco",
-        "artifactId" : "javacpp",
-        "version" : "1.4.2",
-      },
+      "sha1" : "65405ede2dbb7b7c6b45ceaaa2e2bfcc1e4cf511",
+      "urls": [
+        "https://oss.sonatype.org/content/repositories/snapshots/org/bytedeco/javacpp/1.5.2-SNAPSHOT/javacpp-1.5.2-20190925.123211-26.jar",
+      ],
       "license" : "GPLv2-CPE"
     },
     "LLVM_PLATFORM_SPECIFIC": {
       "os_arch": {
         "linux": {
           "amd64": {
-            "sha1": "344483aefa15147c121a8fb6fb35a2406768cc5c",
-            "maven": {
-              "groupId" : "org.bytedeco.javacpp-presets",
-              "artifactId" : "llvm",
-              "version" : "6.0.1-1.4.2",
-              "classifier": "linux-x86_64"
-            },
+            "sha1": "2ca414277df52e629c677fcf12982ad0b8d731ee",
+            "urls": [
+              "https://oss.sonatype.org/content/repositories/snapshots/org/bytedeco/llvm/8.0.1-1.5.2-SNAPSHOT/llvm-8.0.1-1.5.2-20190819.102452-113-linux-x86_64.jar",
+            ],
+          },
+          "aarch64": {
+            "sha1": "2992a8d785f30d1ba16fa47b4c9454509b839e56",
+            "urls": [
+              "https://oss.sonatype.org/content/repositories/snapshots/org/bytedeco/llvm/9.0.0-1.5.2-SNAPSHOT/llvm-9.0.0-1.5.2-20190926.022802-25-linux-arm64.jar",
+            ],
           },
           "<others>": {
             "optional": True,
@@ -223,30 +220,50 @@ suite = {
         },
         "darwin": {
           "amd64": {
-            "sha1": "57bc74574104a9e0a2dc4d7a71ffcc5731909e57",
-            "maven": {
-              "groupId" : "org.bytedeco.javacpp-presets",
-              "artifactId" : "llvm",
-              "version" : "6.0.1-1.4.2",
-              "classifier": "macosx-x86_64"
-            }
+            "sha1": "3d739f4365b3a04aab1326a4003c6b32faff389d",
+            "urls": [
+              "https://oss.sonatype.org/content/repositories/snapshots/org/bytedeco/llvm/8.0.1-1.5.2-SNAPSHOT/llvm-8.0.1-1.5.2-20190819.135051-114-macosx-x86_64.jar",
+            ],
           },
         },
         "windows": {
           "amd64": {
-            "sha1": "1fb48595e51b74c83886ec07b277ec914a757aaf",
-            "maven": {
-              "groupId" : "org.bytedeco.javacpp-presets",
-              "artifactId" : "llvm",
-              "version" : "6.0.1-1.4.2",
-              "classifier": "windows-x86_64"
-            },
+            "sha1": "b4e4ef1d7765e8f34c44cec3658824bb96c2a2c2",
+            "urls": [
+              "https://oss.sonatype.org/content/repositories/snapshots/org/bytedeco/llvm/8.0.1-1.5.2-SNAPSHOT/llvm-8.0.1-1.5.2-20190818.023159-107-windows-x86_64.jar",
+            ],
           },
         },
         "<others>": {
           "<others>": {
             "optional": True,
           }
+        }
+      },
+    },
+    "LLVM_CUSTOM_LLC": {
+      "os_arch": {
+        "linux": {
+          "aarch64": {
+            "sha1": "8fd869b4c7ce18602c26083ccc59ba12f25e50c3",
+            "urls": [
+              "https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/native-image/llc-10.0.0-snapshot-1-linux-aarch64.zip",
+            ],
+          },
+          "<others>": {
+            "optional": True,
+          }
+        },
+        "darwin": {
+          "amd64": {
+            "sha1": "2fc1ec765576a9803194c49ebd682afd536b80f9",
+            "urls": [
+              "https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/native-image/llc-10.0.0-snapshot-1-darwin-amd64.zip",
+            ],
+          }
+        },
+        "<others>": {
+          "optional": True,
         }
       },
     }
@@ -1595,8 +1612,9 @@ suite = {
       "sourceDirs" : ["src"],
       "dependencies" : [
         "org.graalvm.compiler.core",
-        "LLVM_WRAPPER",
+        "LLVM_PRESETS",
         "LLVM_PLATFORM_SPECIFIC",
+        "LLVM_CUSTOM_LLC",
       ],
       "checkstyle" : "org.graalvm.compiler.graph",
       "annotationProcessors" : [
@@ -2717,8 +2735,9 @@ suite = {
         "GRAAL",
       ],
       "exclude": [
-        "LLVM_WRAPPER",
+        "LLVM_PRESETS",
         "LLVM_PLATFORM_SPECIFIC",
+        "LLVM_CUSTOM_LLC",
       ],
       "maven" : False,
     }
