@@ -70,22 +70,38 @@ public class LLVMUtils {
     }
 
     /**
-     * LLVM target-specific inline assembly snippets.
+     * LLVM target-specific inline assembly snippets and information.
      */
-    public abstract static class TargetSpecific {
-        public static TargetSpecific get() {
+    public interface TargetSpecific {
+        static TargetSpecific get() {
             return ImageSingletons.lookup(TargetSpecific.class);
         }
 
         /**
          * Snippet that gets the value of an arbitrary register.
          */
-        public abstract String getRegisterInlineAsm(String register);
+        String getRegisterInlineAsm(String register);
 
         /**
          * Snippet that jumps to a runtime-computed address.
          */
-        public abstract String getJumpInlineAsm();
+        String getJumpInlineAsm();
+
+        String getLLVMArchName();
+
+        int getFrameSizePadding();
+
+        int getStackPointerDwarfRegNum();
+
+        int getFramePointerDwarfRegNum();
+
+        default List<String> getLLCAdditionalOptions() {
+            return Collections.emptyList();
+        }
+
+        default String getLLVMRegisterName(String register) {
+            return register;
+        }
     }
 
     static int getLLVMIntCond(Condition cond) {
