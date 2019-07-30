@@ -24,15 +24,18 @@
  */
 package org.graalvm.compiler.core.llvm;
 
-import static org.bytedeco.javacpp.LLVM.LLVMTypeOf;
+import static org.bytedeco.llvm.global.LLVM.LLVMTypeOf;
 import static org.graalvm.compiler.debug.GraalError.shouldNotReachHere;
 import static org.graalvm.compiler.debug.GraalError.unimplemented;
 
-import org.bytedeco.javacpp.LLVM;
-import org.bytedeco.javacpp.LLVM.LLVMContextRef;
-import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
-import org.bytedeco.javacpp.LLVM.LLVMValueRef;
+import java.util.Collections;
+import java.util.List;
+
 import org.bytedeco.javacpp.Pointer;
+import org.bytedeco.llvm.LLVM.LLVMContextRef;
+import org.bytedeco.llvm.LLVM.LLVMTypeRef;
+import org.bytedeco.llvm.LLVM.LLVMValueRef;
+import org.bytedeco.llvm.global.LLVM;
 import org.graalvm.compiler.core.common.LIRKind;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.compiler.core.common.calc.Condition;
@@ -226,7 +229,7 @@ public class LLVMUtils {
         private final LLVMVariable address;
 
         LLVMStackSlot(LLVMValueRef value) {
-            super(id++, LLVMKind.toLIRKind(LLVM.LLVMTypeOf(value)));
+            super(id++, LLVMKind.toLIRKind(LLVMTypeOf(value)));
 
             this.value = value;
             this.address = new LLVMVariable(value);

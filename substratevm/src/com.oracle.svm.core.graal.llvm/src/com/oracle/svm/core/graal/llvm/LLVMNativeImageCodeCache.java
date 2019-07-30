@@ -48,12 +48,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.javacpp.LLVM;
-import org.bytedeco.javacpp.LLVM.LLVMMemoryBufferRef;
-import org.bytedeco.javacpp.LLVM.LLVMObjectFileRef;
-import org.bytedeco.javacpp.LLVM.LLVMSectionIteratorRef;
-import org.bytedeco.javacpp.LLVM.LLVMSymbolIteratorRef;
 import org.bytedeco.javacpp.Pointer;
+import org.bytedeco.llvm.LLVM.LLVMMemoryBufferRef;
+import org.bytedeco.llvm.LLVM.LLVMObjectFileRef;
+import org.bytedeco.llvm.LLVM.LLVMSectionIteratorRef;
+import org.bytedeco.llvm.LLVM.LLVMSymbolIteratorRef;
+import org.bytedeco.llvm.global.LLVM;
 import org.graalvm.compiler.code.CompilationResult;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.compiler.core.llvm.LLVMUtils;

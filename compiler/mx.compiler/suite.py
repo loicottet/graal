@@ -184,24 +184,24 @@ suite = {
       },
       "dependencies": ["JAXB_API_2.1", "ACTIVATION_1.1.1"]
     },
-    "LLVM_WRAPPER": {
-      "sha1" : "a990b2dba1c706f5c43c56fedfe70bad9a695852",
-      "sourceSha1" : "decbd95d46092fa9afaf2523b5b23d07ad7ad6bc",
+    "LLVM_PRESETS": {
+      "sha1" : "9f5969f7d23ff53376f566eedf8f7e6761602865",
+      "sourceSha1" : "7f72f51b79e7893a29249d12516b6e64666b12d3",
       "dependencies" : ["JAVACPP"],
       "maven" : {
-        "groupId" : "org.bytedeco.javacpp-presets",
+        "groupId" : "org.bytedeco",
         "artifactId" : "llvm",
-        "version" : "6.0.1-1.4.2",
+        "version" : "8.0.0-1.5",
       },
       "license" : "GPLv2-CPE"
     },
     "JAVACPP": {
-      "sha1" : "cfa6a0259d98bff5aa8d41ba11b4d1dad648fbaa",
-      "sourceSha1" : "fdb2d2c17f6b91cdd5421554396da8905f0dfed2",
+      "sha1" : "d655e7adf50f000307f982b4238e29dcce54ebc8",
+      "sourceSha1" : "22cceefe60847b95a1814b7c74358eca325bdd64",
       "maven" : {
         "groupId" : "org.bytedeco",
         "artifactId" : "javacpp",
-        "version" : "1.4.2",
+        "version" : "1.5",
       },
       "license" : "GPLv2-CPE"
     },
@@ -209,36 +209,33 @@ suite = {
       "os_arch": {
         "linux": {
           "amd64": {
-            "sha1": "344483aefa15147c121a8fb6fb35a2406768cc5c",
+            "sha1": "",
             "maven": {
-              "groupId" : "org.bytedeco.javacpp-presets",
+              "groupId" : "org.bytedeco",
               "artifactId" : "llvm",
-              "version" : "6.0.1-1.4.2",
+              "version" : "8.0.0-1.5",
               "classifier": "linux-x86_64"
             },
-          },
-          "<others>": {
-            "optional": True,
           },
         },
         "darwin": {
           "amd64": {
-            "sha1": "57bc74574104a9e0a2dc4d7a71ffcc5731909e57",
+            "sha1": "e715714cf354d4d62e4495428c85dfbc0163c2ae",
             "maven": {
-              "groupId" : "org.bytedeco.javacpp-presets",
+              "groupId" : "org.bytedeco",
               "artifactId" : "llvm",
-              "version" : "6.0.1-1.4.2",
+              "version" : "8.0.0-1.5",
               "classifier": "macosx-x86_64"
             }
           },
         },
         "windows": {
           "amd64": {
-            "sha1": "1fb48595e51b74c83886ec07b277ec914a757aaf",
+            "sha1": "e3b2c3e60ea3f762b10b2b2207617373814174f7",
             "maven": {
-              "groupId" : "org.bytedeco.javacpp-presets",
+              "groupId" : "org.bytedeco",
               "artifactId" : "llvm",
-              "version" : "6.0.1-1.4.2",
+              "version" : "8.0.0-1.5",
               "classifier": "windows-x86_64"
             },
           },
@@ -1454,7 +1451,7 @@ suite = {
       "dependencies" : [
         "org.graalvm.compiler.core",
         "org.graalvm.compiler.lir.aarch64",
-        "LLVM_WRAPPER",
+        "LLVM_PRESETS",
         "LLVM_PLATFORM_SPECIFIC",
       ],
       "checkstyle" : "org.graalvm.compiler.graph",
@@ -2483,7 +2480,7 @@ suite = {
         "GRAAL",
       ],
       "exclude": [
-        "LLVM_WRAPPER",
+        "LLVM_PRESETS",
         "LLVM_PLATFORM_SPECIFIC",
       ],
       "maven" : False,
