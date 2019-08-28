@@ -33,8 +33,10 @@ import org.graalvm.compiler.nodes.StructuredGraph;
 
 import com.oracle.svm.core.graal.code.CGlobalDataReference;
 import com.oracle.svm.core.graal.code.SubstrateDataBuilder;
+import com.oracle.svm.core.meta.SubstrateObjectConstant;
 
 import jdk.vm.ci.code.site.DataSectionReference;
+import jdk.vm.ci.meta.Constant;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 
 public class SubstrateLLVMGenerationResult extends LLVMGenerationResult {
@@ -55,7 +57,11 @@ public class SubstrateLLVMGenerationResult extends LLVMGenerationResult {
         cGlobals.forEach((reference, symbolName) -> compilationResult.recordDataPatchWithNote(0, reference, symbolName));
         SubstrateDataBuilder dataBuilder = new SubstrateDataBuilder();
         getConstants().forEach((constant, symbolName) -> {
-            DataSectionReference reference = compilationResult.getDataSection().insertData(dataBuilder.createDataItem(constant));
+            Constant storedConstant = constant;
+            if (constant instanceof SubstrateObjectConstant && !((SubstrateObjectConstant) constant).isCompressed()) {
+                storedConstant = ((SubstrateObjectConstant) constant).compress();
+            }
+            DataSectionReference reference = compilationResult.getDataSection().insertData(dataBuilder.createDataItem(storedConstant));
             compilationResult.recordDataPatchWithNote(0, reference, symbolName);
         });
     }

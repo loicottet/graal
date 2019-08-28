@@ -772,7 +772,7 @@ public class LLVMIRBuilder {
         return LLVM.LLVMBuildFCmp(builder, getLLVMRealCond(cond, unordered), a, b, DEFAULT_INSTR_NAME);
     }
 
-    LLVMValueRef buildSelect(LLVMValueRef condition, LLVMValueRef trueVal, LLVMValueRef falseVal) {
+    public LLVMValueRef buildSelect(LLVMValueRef condition, LLVMValueRef trueVal, LLVMValueRef falseVal) {
         return LLVM.LLVMBuildSelect(builder, condition, trueVal, falseVal, DEFAULT_INSTR_NAME);
     }
 
@@ -805,7 +805,7 @@ public class LLVMIRBuilder {
         return unaryBuilder.build(builder, a, DEFAULT_INSTR_NAME);
     }
 
-    LLVMValueRef buildAdd(LLVMValueRef a, LLVMValueRef b) {
+    public LLVMValueRef buildAdd(LLVMValueRef a, LLVMValueRef b) {
         return buildBinaryNumberOp(a, b, LLVM::LLVMBuildAdd, LLVM::LLVMBuildFAdd);
     }
 
@@ -966,11 +966,11 @@ public class LLVMIRBuilder {
         return LLVM.LLVMBuildXor(builder, a, b, DEFAULT_INSTR_NAME);
     }
 
-    LLVMValueRef buildShl(LLVMValueRef a, LLVMValueRef b) {
+    public LLVMValueRef buildShl(LLVMValueRef a, LLVMValueRef b) {
         return buildShift(LLVM::LLVMBuildShl, a, b);
     }
 
-    LLVMValueRef buildShr(LLVMValueRef a, LLVMValueRef b) {
+    public LLVMValueRef buildShr(LLVMValueRef a, LLVMValueRef b) {
         return buildShift(LLVM::LLVMBuildAShr, a, b);
     }
 
@@ -1005,11 +1005,11 @@ public class LLVMIRBuilder {
         return LLVM.LLVMBuildBitCast(builder, value, type, DEFAULT_INSTR_NAME);
     }
 
-    LLVMValueRef buildAddrSpaceCast(LLVMValueRef value, LLVMTypeRef type) {
+    public LLVMValueRef buildAddrSpaceCast(LLVMValueRef value, LLVMTypeRef type) {
         return LLVM.LLVMBuildAddrSpaceCast(builder, value, type, DEFAULT_INSTR_NAME);
     }
 
-    LLVMValueRef buildRegisterObject(LLVMValueRef pointer) {
+    public LLVMValueRef buildRegisterObject(LLVMValueRef pointer) {
         return buildCall(gcRegisterFunction, pointer);
     }
 

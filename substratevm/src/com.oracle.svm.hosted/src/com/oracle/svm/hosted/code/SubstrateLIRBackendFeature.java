@@ -43,6 +43,7 @@ import com.oracle.svm.core.graal.GraalFeature;
 import com.oracle.svm.core.graal.meta.RuntimeConfiguration;
 import com.oracle.svm.core.graal.snippets.ExceptionSnippets;
 import com.oracle.svm.core.graal.snippets.NodeLoweringProvider;
+import com.oracle.svm.core.heap.CodeReferenceMapDecoder;
 import com.oracle.svm.core.snippets.SnippetRuntime;
 import com.oracle.svm.hosted.image.LIRNativeImageCodeCache;
 import com.oracle.svm.hosted.image.NativeImageCodeCache;
@@ -65,6 +66,7 @@ class SubstrateLIRBackendFeature implements Feature, GraalFeature {
             }
         });
         ImageSingletons.add(SnippetRuntime.ExceptionUnwind.class, new SnippetRuntime.ExceptionUnwind());
+        ImageSingletons.add(CodeReferenceMapDecoder.CompressionModifier.class, new CodeReferenceMapDecoder.TrustingCompressionModifier());
     }
 
     @Override
