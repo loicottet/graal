@@ -110,6 +110,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
         try {
             basePath = Files.createTempDirectory("native-image-llvm");
+            System.out.println(basePath);
             if (LLVMOptions.DumpLLVMStackMap.hasBeenSet()) {
                 stackMapDump = new FileWriter(LLVMOptions.DumpLLVMStackMap.getValue());
             } else {
@@ -259,6 +260,9 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
             long startPatchpointID = compilation.getInfopoints().stream().filter(ip -> ip.reason == InfopointReason.METHOD_START).findFirst()
                             .orElseThrow(() -> new GraalError("no method start infopoint: " + methodSymbolName)).pcOffset;
             int totalFrameSize = NumUtil.safeToInt(info.getFunctionStackSize(startPatchpointID) + TargetSpecific.get().getCallFrameSeparation());
+            if (totalFrameSize < 0) {
+                System.out.println(compilation.getName() + " f" + id);
+            }
             compilation.setTotalFrameSize(totalFrameSize);
 
             StringBuilder patchpointsDump = null;

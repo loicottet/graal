@@ -297,6 +297,11 @@ public class LLVMStackMapInfo {
             assert ref.type == Location.Type.Indirect; // spilled values
             int derivedOffset = getStackOffset(patchpointID, ref);
 
+            if (base.size > 8 || ref.size > 8) {
+                System.out.println("base " + base.type + "(" + base.offset + ":" + base.size + "), ref" + ref.type + "(" + ref.offset + ":" + ref.size + ")");
+//                assert base.size == ref.size && base.offset == ref.offset && base.type == ref.type;
+            }
+
             /* Derived pointers have their base already registered on the stackmap */
             if (!seenOffsets.contains(derivedOffset)) {
                 seenOffsets.add(derivedOffset);
@@ -321,7 +326,9 @@ public class LLVMStackMapInfo {
     }
 
     private int getStackOffset(long patchpointID, Location location) {
-        assert location.size == 8;
+//        if (!(location.size == 8)) {
+//            System.out.println(location.size);
+//        }
 
         int offset;
         if (location.regNum == TargetSpecific.get().getStackPointerDwarfRegNum()) {
@@ -335,7 +342,9 @@ public class LLVMStackMapInfo {
             throw shouldNotReachHere("found other register " + patchpointID + " " + location.regNum);
         }
 
-        assert offset >= 0 && offset < (getFunctionStackSize(patchpointID) - FrameAccess.wordSize());
+//        if (!(offset >= 0 && offset < (getFunctionStackSize(patchpointID) - FrameAccess.wordSize()))) {
+//            System.out.println(offset + ", " + getFunctionStackSize(patchpointID));
+//        }
         return offset;
     }
 }
