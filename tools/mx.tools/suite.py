@@ -136,6 +136,9 @@ suite = {
                     "amd64" : {
                         "urls" : ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/visualvm/visualvm-683-linux-amd64.tar.gz"],
                         "sha1" : "9598ec2f792d42ff95a398e2d8af448bb6707449",
+                    },
+                    "<others>": {
+                        "optional": True,
                     }
                 },
                 "darwin" : {

@@ -526,6 +526,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
 
             int status = p.waitFor();
             if (status != 0) {
+                System.out.println(output);
                 debug.log("%s", output.toString());
                 throw new GraalError("LLVM compilation failed for " + getFunctionName(inputPath) + ": " + status);
             }
