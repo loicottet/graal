@@ -65,9 +65,10 @@ public class LLVMIRBuilder {
     private LLVMBuilderRef builder;
 
     private String functionName;
-    private LLVMValueRef gcRegisterFunction;
+    private final LLVMValueRef gcRegisterFunction;
+    private final LLVMValueRef gcRegisterCompressedFunction;
 
-    public LLVMIRBuilder(String functionName, LLVMContextRef context) {
+    public LLVMIRBuilder(String functionName, LLVMContextRef context, boolean useCompressedPointers) {
         this.context = context;
         this.functionName = functionName;
 
@@ -80,16 +81,24 @@ public class LLVMIRBuilder {
          * recognize an address space cast (see pointerType()) as declaring a new reference, but it
          * does a function return value.
          */
-        gcRegisterFunction = addFunction(LLVMUtils.GC_REGISTER_FUNCTION_NAME, functionType(objectType(), rawPointerType()));
-        LLVM.LLVMSetLinkage(gcRegisterFunction, LLVM.LLVMLinkOnceAnyLinkage);
-        setAttribute(gcRegisterFunction, LLVM.LLVMAttributeFunctionIndex, LLVMUtils.ALWAYS_INLINE);
-        setAttribute(gcRegisterFunction, LLVM.LLVMAttributeFunctionIndex, LLVMUtils.GC_LEAF_FUNCTION_NAME);
+        gcRegisterFunction = buildGCRegisterFunction(false);
+        gcRegisterCompressedFunction = useCompressedPointers ? buildGCRegisterFunction(true) : null;
+    }
 
-        LLVMBasicBlockRef block = appendBasicBlock("main", gcRegisterFunction);
+    private LLVMValueRef buildGCRegisterFunction(boolean compressed) {
+        String functionName = compressed ? LLVMUtils.GC_REGISTER_COMPRESSED_FUNCTION_NAME : LLVMUtils.GC_REGISTER_FUNCTION_NAME;
+        LLVMValueRef function = addFunction(functionName, functionType(objectType(compressed), rawPointerType()));
+        LLVM.LLVMSetLinkage(function, LLVM.LLVMLinkOnceAnyLinkage);
+        setAttribute(function, LLVM.LLVMAttributeFunctionIndex, LLVMUtils.ALWAYS_INLINE);
+        setAttribute(function, LLVM.LLVMAttributeFunctionIndex, LLVMUtils.GC_LEAF_FUNCTION_NAME);
+
+        LLVMBasicBlockRef block = appendBasicBlock("main", function);
         positionAtEnd(block);
-        LLVMValueRef arg = getParam(gcRegisterFunction, 0);
-        LLVMValueRef ref = buildAddrSpaceCast(arg, objectType());
+        LLVMValueRef arg = getParam(function, 0);
+        LLVMValueRef ref = buildAddrSpaceCast(arg, objectType(compressed));
         buildRet(ref);
+
+        return function;
     }
 
     public LLVMModuleRef getModule() {
@@ -248,10 +257,10 @@ public class LLVMIRBuilder {
     /* Types */
 
     LLVMTypeRef getLLVMStackType(JavaKind kind) {
-        return getLLVMType(kind.getStackKind());
+        return getLLVMType(kind.getStackKind(), false);
     }
 
-    LLVMTypeRef getLLVMType(JavaKind kind) {
+    LLVMTypeRef getLLVMType(JavaKind kind, boolean compressedObjects) {
         switch (kind) {
             case Boolean:
                 return booleanType();
@@ -270,7 +279,7 @@ public class LLVMIRBuilder {
             case Double:
                 return doubleType();
             case Object:
-                return objectType();
+                return objectType(compressedObjects);
             case Void:
                 return voidType();
             case Illegal:
@@ -325,20 +334,21 @@ public class LLVMIRBuilder {
      * at call sites. Regular pointers are not tracked and represent non-java pointers. They are
      * distinguished by the pointer address space they live in (1, resp. 0).
      */
-    public LLVMTypeRef pointerType(LLVMTypeRef type, boolean tracked) {
-        return LLVM.LLVMPointerType(type, pointerAddressSpace(tracked));
+    public LLVMTypeRef pointerType(LLVMTypeRef type, boolean tracked, boolean compressed) {
+        return LLVM.LLVMPointerType(type, pointerAddressSpace(tracked, compressed));
     }
 
-    private static int pointerAddressSpace(boolean tracked) {
-        return tracked ? LLVMUtils.TRACKED_POINTER_ADDRESS_SPACE : LLVMUtils.UNTRACKED_POINTER_ADDRESS_SPACE;
+    private static int pointerAddressSpace(boolean tracked, boolean compressed) {
+        assert tracked || !compressed;
+        return tracked ? (compressed ? LLVMUtils.COMPRESSED_POINTER_ADDRESS_SPACE : LLVMUtils.TRACKED_POINTER_ADDRESS_SPACE) : LLVMUtils.UNTRACKED_POINTER_ADDRESS_SPACE;
     }
 
-    public LLVMTypeRef objectType() {
-        return pointerType(byteType(), true);
+    public LLVMTypeRef objectType(boolean compressed) {
+        return pointerType(byteType(), true, compressed);
     }
 
     public LLVMTypeRef rawPointerType() {
-        return pointerType(byteType(), false);
+        return pointerType(byteType(), false, false);
     }
 
     public LLVMTypeRef arrayType(LLVMTypeRef type, int length) {
@@ -425,7 +435,14 @@ public class LLVMIRBuilder {
     }
 
     private static boolean isTracked(LLVMTypeRef pointerType) {
-        return LLVM.LLVMGetPointerAddressSpace(pointerType) == LLVMUtils.TRACKED_POINTER_ADDRESS_SPACE;
+        int addressSpace = LLVM.LLVMGetPointerAddressSpace(pointerType);
+        return addressSpace == LLVMUtils.TRACKED_POINTER_ADDRESS_SPACE || addressSpace == LLVMUtils.COMPRESSED_POINTER_ADDRESS_SPACE;
+    }
+
+    static boolean isCompressed(LLVMTypeRef pointerType) {
+        int addressSpace = LLVM.LLVMGetPointerAddressSpace(pointerType);
+        assert addressSpace == LLVMUtils.COMPRESSED_POINTER_ADDRESS_SPACE || addressSpace == LLVMUtils.TRACKED_POINTER_ADDRESS_SPACE;
+        return addressSpace == LLVMUtils.COMPRESSED_POINTER_ADDRESS_SPACE;
     }
 
     private static LLVMTypeRef getElementType(LLVMTypeRef pointerType) {
@@ -569,10 +586,10 @@ public class LLVMIRBuilder {
      * code, while unique globals are values created by the LLVM backend, potentially in multiple
      * functions, and are then conflated by the LLVM linker.
      */
-    LLVMValueRef getExternalObject(String name) {
+    LLVMValueRef getExternalObject(String name, boolean compressed) {
         LLVMValueRef val = getGlobal(name);
         if (val == null) {
-            val = LLVM.LLVMAddGlobalInAddressSpace(module, objectType(), name, LLVMUtils.TRACKED_POINTER_ADDRESS_SPACE);
+            val = LLVM.LLVMAddGlobalInAddressSpace(module, objectType(compressed), name, pointerAddressSpace(true, false));
             setLinkage(val, LLVM.LLVMExternalLinkage);
         }
         return val;
@@ -590,7 +607,7 @@ public class LLVMIRBuilder {
     public LLVMValueRef getUniqueGlobal(String name, LLVMTypeRef type, boolean zeroInitialized) {
         LLVMValueRef global = getGlobal(name);
         if (global == null) {
-            global = LLVM.LLVMAddGlobalInAddressSpace(module, type, name, pointerAddressSpace(isObject(type)));
+            global = LLVM.LLVMAddGlobalInAddressSpace(module, type, name, pointerAddressSpace(isObject(type), false));
             if (zeroInitialized) {
                 setInitializer(global, LLVM.LLVMConstNull(type));
             }
@@ -1009,8 +1026,8 @@ public class LLVMIRBuilder {
         return LLVM.LLVMBuildAddrSpaceCast(builder, value, type, DEFAULT_INSTR_NAME);
     }
 
-    public LLVMValueRef buildRegisterObject(LLVMValueRef pointer) {
-        return buildCall(gcRegisterFunction, pointer);
+    public LLVMValueRef buildRegisterObject(LLVMValueRef pointer, boolean compressed) {
+        return buildCall(compressed ? gcRegisterCompressedFunction : gcRegisterFunction, pointer);
     }
 
     public LLVMValueRef buildIntToPtr(LLVMValueRef value, LLVMTypeRef type) {
@@ -1070,10 +1087,10 @@ public class LLVMIRBuilder {
             pointedType = rawPointerType();
             postRegister = true;
         }
-        LLVMValueRef castedAddress = buildBitcast(address, pointerType(pointedType, isObject(addressType)));
+        LLVMValueRef castedAddress = buildBitcast(address, pointerType(pointedType, isObject(addressType), false));
         LLVMValueRef loadedValue = buildLoad(castedAddress);
         if (postRegister) {
-            loadedValue = buildRegisterObject(loadedValue);
+            loadedValue = buildRegisterObject(loadedValue, LLVMIRBuilder.isCompressed(type));
         }
         return loadedValue;
     }
@@ -1090,7 +1107,7 @@ public class LLVMIRBuilder {
             valueType = rawPointerType();
             castedValue = buildAddrSpaceCast(value, rawPointerType());
         }
-        LLVMValueRef castedAddress = buildBitcast(address, pointerType(valueType, isObject(addressType)));
+        LLVMValueRef castedAddress = buildBitcast(address, pointerType(valueType, isObject(addressType), false));
         LLVM.LLVMBuildStore(builder, castedValue, castedAddress);
     }
 
@@ -1138,15 +1155,15 @@ public class LLVMIRBuilder {
 
         boolean isObject = isObject(expectedType);
         LLVMTypeRef operationType = isObject ? rawPointerType() : expectedType;
-        LLVMValueRef castedAddress = isObject && isTracked(typeOf(address)) ? buildAddrSpaceCast(address, pointerType(operationType, false))
-                        : buildBitcast(address, pointerType(operationType, isTracked(typeOf(address))));
+        LLVMValueRef castedAddress = isObject && isTracked(typeOf(address)) ? buildAddrSpaceCast(address, pointerType(operationType, false, false))
+                        : buildBitcast(address, pointerType(operationType, isTracked(typeOf(address)), false));
         LLVMValueRef castedExpectedValue = isObject ? buildAddrSpaceCast(expectedValue, operationType) : expectedValue;
         LLVMValueRef castedNewValue = isObject ? buildAddrSpaceCast(newValue, operationType) : newValue;
 
         LLVMValueRef cas = LLVM.LLVMBuildAtomicCmpXchg(builder, castedAddress, castedExpectedValue, castedNewValue, LLVM.LLVMAtomicOrderingMonotonic, LLVM.LLVMAtomicOrderingMonotonic, FALSE);
         LLVMValueRef result = buildExtractValue(cas, resultIndex);
         if (isObject && resultIndex == LLVM_CMPXCHG_VALUE) {
-            result = buildRegisterObject(result);
+            result = buildRegisterObject(result, LLVMIRBuilder.isCompressed(expectedType));
         }
         return result;
     }
@@ -1165,12 +1182,12 @@ public class LLVMIRBuilder {
 
         LLVMTypeRef operationType = (pointerOp) ? longType() : valueType;
         LLVMValueRef castedValue = (pointerOp) ? buildPtrToInt(value, operationType) : value;
-        LLVMValueRef castedAddress = buildBitcast(address, pointerType(operationType, isObject(typeOf(address))));
+        LLVMValueRef castedAddress = buildBitcast(address, pointerType(operationType, isObject(typeOf(address)), false));
         LLVMValueRef atomicRMW = LLVM.LLVMBuildAtomicRMW(builder, operation, castedAddress, castedValue, LLVM.LLVMAtomicOrderingMonotonic, FALSE);
 
         if (pointerOp) {
             atomicRMW = buildIntToPtr(atomicRMW, rawPointerType());
-            atomicRMW = buildRegisterObject(atomicRMW);
+            atomicRMW = buildRegisterObject(atomicRMW, LLVMIRBuilder.isCompressed(valueType));
         }
 
         return atomicRMW;

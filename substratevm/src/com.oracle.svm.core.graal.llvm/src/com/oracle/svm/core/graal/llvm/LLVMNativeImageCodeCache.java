@@ -280,7 +280,7 @@ public class LLVMNativeImageCodeCache extends NativeImageCodeCache {
                     /* Optimizations might have duplicated some calls. */
                     for (int actualPcOffset : info.getPatchpointOffsets(call.pcOffset)) {
                         SubstrateReferenceMap referenceMap = new SubstrateReferenceMap();
-                        info.forEachStatepointOffset(call.pcOffset, actualPcOffset, (o, b) -> referenceMap.markReferenceAtOffset(o, b, SubstrateOptions.SpawnIsolates.getValue()));
+                        info.forEachStatepointOffset(call.pcOffset, actualPcOffset, referenceMap::markReferenceAtOffset);
                         call.debugInfo.setReferenceMap(referenceMap);
 
                         if (LLVMOptions.DumpLLVMStackMap.hasBeenSet()) {

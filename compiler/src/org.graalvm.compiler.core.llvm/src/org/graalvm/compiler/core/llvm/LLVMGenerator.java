@@ -77,6 +77,7 @@ import org.graalvm.compiler.lir.gen.LIRGenerationResult;
 import org.graalvm.compiler.lir.gen.LIRGeneratorTool;
 import org.graalvm.compiler.nodes.AbstractBeginNode;
 import org.graalvm.compiler.nodes.cfg.Block;
+import org.graalvm.compiler.nodes.type.NarrowOopStamp;
 import org.graalvm.compiler.phases.util.Providers;
 
 import jdk.vm.ci.code.CallingConvention;
@@ -171,7 +172,7 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
         if (stamp instanceof RawPointerStamp) {
             return builder.rawPointerType();
         }
-        return builder.getLLVMType(getTypeKind(stamp.javaType(getMetaAccess()), false));
+        return builder.getLLVMType(getTypeKind(stamp.javaType(getMetaAccess()), false), stamp instanceof NarrowOopStamp);
     }
 
     protected JavaKind getTypeKind(@SuppressWarnings("unused") ResolvedJavaType type, @SuppressWarnings("unused") boolean forMainFunction) {
@@ -212,7 +213,11 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
             symbolName = "constant_" + builder.getFunctionName() + "#" + nextConstantId++;
             generationResult.recordConstant(constant, symbolName);
         }
-        return builder.getExternalObject(symbolName);
+        return builder.getExternalObject(symbolName, isConstantCompressed(constant));
+    }
+
+    protected boolean isConstantCompressed(Constant constant) {
+        throw unimplemented();
     }
 
     protected void emitPrintf(String base) {
@@ -356,7 +361,8 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
 
     @Override
     public Value emitJavaConstant(JavaConstant constant) {
-        LLVMValueRef value = emitLLVMConstant(builder.getLLVMType(constant.getJavaKind()), constant);
+        assert constant.getJavaKind() != JavaKind.Object;
+        LLVMValueRef value = emitLLVMConstant(builder.getLLVMType(constant.getJavaKind(), false), constant);
         return new LLVMConstant(value, constant);
     }
 
@@ -388,9 +394,9 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
             value = builder.constantDouble(constant.asDouble());
         } else if (LLVMIRBuilder.isObject(type)) {
             if (constant.isNull()) {
-                value = builder.constantNull(builder.objectType());
+                value = builder.constantNull(builder.objectType(LLVMIRBuilder.isCompressed(type)));
             } else {
-                value = builder.buildLoad(getLLVMPlaceholderForConstant(constant), builder.objectType());
+                value = builder.buildLoad(getLLVMPlaceholderForConstant(constant), builder.objectType(LLVMIRBuilder.isCompressed(type)));
             }
         } else {
             throw shouldNotReachHere(dumpTypes("unsupported constant type", type));
@@ -499,7 +505,7 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
         /* Floating word cast */
         if (LLVMIRBuilder.isObject(destType) && LLVMIRBuilder.isIntegerType(sourceType) && LLVMIRBuilder.integerTypeWidth(sourceType) == JavaKind.Long.getBitCount()) {
             source = builder.buildIntToPtr(source, builder.rawPointerType());
-            source = builder.buildRegisterObject(source);
+            source = builder.buildRegisterObject(source, LLVMIRBuilder.isCompressed(destType));
         } else if (LLVMIRBuilder.isIntegerType(destType) && LLVMIRBuilder.integerTypeWidth(destType) == JavaKind.Long.getBitCount() && LLVMIRBuilder.isObject(sourceType)) {
             source = builder.buildPtrToInt(source, builder.longType());
         }
@@ -578,7 +584,7 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
 
     protected LLVMValueRef convertEnumReturnValue(LLVMValueRef longValue) {
         LLVMValueRef retVal = builder.buildIntToPtr(longValue, builder.rawPointerType());
-        retVal = builder.buildRegisterObject(retVal);
+        retVal = builder.buildRegisterObject(retVal, false);
         return retVal;
     }
 
@@ -617,7 +623,7 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
 
     @Override
     public AllocatableValue resultOperandFor(JavaKind javaKind, ValueKind<?> valueKind) {
-        return new LLVMVariable(builder.getLLVMType(javaKind));
+        throw unimplemented();
     }
 
     @Override
@@ -724,23 +730,23 @@ public abstract class LLVMGenerator implements LIRGeneratorTool {
 
     @Override
     public Variable emitArrayEquals(JavaKind kind, Value array1, Value array2, Value length, boolean directPointers) {
-        LLVMTypeRef elemType = builder.getLLVMType(kind);
+        LLVMTypeRef elemType = builder.getLLVMType(kind, false);
 
         LLVMValueRef inArray1;
         LLVMValueRef inArray2;
         if (directPointers) {
-            inArray1 = builder.buildIntToPtr(getVal(array1), builder.pointerType(elemType, false));
-            inArray2 = builder.buildIntToPtr(getVal(array2), builder.pointerType(elemType, false));
+            inArray1 = builder.buildIntToPtr(getVal(array1), builder.pointerType(elemType, false, false));
+            inArray2 = builder.buildIntToPtr(getVal(array2), builder.pointerType(elemType, false, false));
         } else {
             int arrayBaseOffset = getProviders().getMetaAccess().getArrayBaseOffset(kind);
 
             inArray1 = builder.buildAddrSpaceCast(getVal(array1), builder.rawPointerType());
             inArray1 = builder.buildGEP(inArray1, builder.constantInt(arrayBaseOffset));
-            inArray1 = builder.buildBitcast(inArray1, builder.pointerType(elemType, false));
+            inArray1 = builder.buildBitcast(inArray1, builder.pointerType(elemType, false, false));
 
             inArray2 = builder.buildAddrSpaceCast(getVal(array2), builder.rawPointerType());
             inArray2 = builder.buildGEP(inArray2, builder.constantInt(arrayBaseOffset));
-            inArray2 = builder.buildBitcast(inArray2, builder.pointerType(elemType, false));
+            inArray2 = builder.buildBitcast(inArray2, builder.pointerType(elemType, false, false));
         }
         int constantLength = LIRValueUtil.isJavaConstant(length) ? LIRValueUtil.asJavaConstant(length).asInt() : -1;
         if (constantLength == 0) {

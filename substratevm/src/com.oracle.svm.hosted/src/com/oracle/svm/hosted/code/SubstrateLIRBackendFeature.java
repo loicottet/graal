@@ -66,7 +66,6 @@ class SubstrateLIRBackendFeature implements Feature, GraalFeature {
             }
         });
         ImageSingletons.add(SnippetRuntime.ExceptionUnwind.class, new SnippetRuntime.ExceptionUnwind());
-        ImageSingletons.add(CodeReferenceMapDecoder.CompressionModifier.class, new CodeReferenceMapDecoder.TrustingCompressionModifier());
     }
 
     @Override

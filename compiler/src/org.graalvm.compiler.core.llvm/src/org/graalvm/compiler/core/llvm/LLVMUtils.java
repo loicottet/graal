@@ -56,9 +56,11 @@ public class LLVMUtils {
     public static final Pointer NULL = null;
     static final int UNTRACKED_POINTER_ADDRESS_SPACE = 0;
     static final int TRACKED_POINTER_ADDRESS_SPACE = 1;
+    static final int COMPRESSED_POINTER_ADDRESS_SPACE = 2;
     public static final long DEFAULT_PATCHPOINT_ID = 0xABCDEF00L;
     public static final String ALWAYS_INLINE = "alwaysinline";
     public static final String GC_REGISTER_FUNCTION_NAME = "__llvm_gc_register";
+    public static final String GC_REGISTER_COMPRESSED_FUNCTION_NAME = "__llvm_gc_register_compressed";
     public static final String GC_LEAF_FUNCTION_NAME = "gc-leaf-function";
     public static final String JNI_WRAPPER_PREFIX = "__llvm_jni_wrapper_";
 
@@ -360,7 +362,7 @@ public class LLVMUtils {
 
         @Override
         public LIRKind getNarrowOopKind() {
-            return LIRKind.compressedReference(new LLVMKind(LLVM.LLVMPointerType(LLVM.LLVMInt8TypeInContext(context), TRACKED_POINTER_ADDRESS_SPACE)));
+            return LIRKind.compressedReference(new LLVMKind(LLVM.LLVMPointerType(LLVM.LLVMInt8TypeInContext(context), COMPRESSED_POINTER_ADDRESS_SPACE)));
         }
 
         @Override
@@ -377,11 +379,14 @@ public class LLVMUtils {
         }
 
         static LIRKind toLIRKind(LLVMTypeRef type) {
-            if (LLVM.LLVMGetTypeKind(type) == LLVM.LLVMPointerTypeKind && LLVM.LLVMGetPointerAddressSpace(type) == TRACKED_POINTER_ADDRESS_SPACE) {
-                return LIRKind.reference(new LLVMKind(type));
-            } else {
-                return LIRKind.value(new LLVMKind(type));
+            if (LLVM.LLVMGetTypeKind(type) == LLVM.LLVMPointerTypeKind) {
+                if (LLVM.LLVMGetPointerAddressSpace(type) == TRACKED_POINTER_ADDRESS_SPACE) {
+                    return LIRKind.reference(new LLVMKind(type));
+                } else if (LLVM.LLVMGetPointerAddressSpace(type) == COMPRESSED_POINTER_ADDRESS_SPACE) {
+                    return LIRKind.compressedReference(new LLVMKind(type));
+                }
             }
+            return LIRKind.value(new LLVMKind(type));
         }
 
         @Override

@@ -33,6 +33,7 @@ import java.util.List;
 
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.heap.ReferenceAccess;
+import com.oracle.svm.core.meta.SubstrateObjectConstant;
 import jdk.vm.ci.meta.Constant;
 import org.bytedeco.javacpp.LLVM.LLVMContextRef;
 import org.bytedeco.javacpp.LLVM.LLVMTypeRef;
@@ -88,7 +89,7 @@ public class SubstrateLLVMGenerator extends LLVMGenerator implements SubstrateLI
     private final boolean returnsCEnum;
 
     SubstrateLLVMGenerator(Providers providers, LLVMGenerationResult generationResult, ResolvedJavaMethod method, LLVMContextRef context, int debugLevel) {
-        super(providers, generationResult, method, new LLVMIRBuilder(SubstrateUtil.uniqueShortName(method), context),
+        super(providers, generationResult, method, new LLVMIRBuilder(SubstrateUtil.uniqueShortName(method), context, SubstrateOptions.SpawnIsolates.getValue()),
                         new LLVMKindTool(context), debugLevel);
         this.isEntryPoint = isEntryPoint(method);
         this.canModifySpecialRegisters = canModifySpecialRegisters(method);
@@ -212,7 +213,7 @@ public class SubstrateLLVMGenerator extends LLVMGenerator implements SubstrateLI
             compressed = builder.buildShr(compressed, builder.constantInt(encoding.getShift()));
         }
 
-        return new LLVMVariable(builder.buildRegisterObject(builder.buildIntToPtr(compressed, builder.rawPointerType())));
+        return new LLVMVariable(builder.buildRegisterObject(builder.buildIntToPtr(compressed, builder.rawPointerType()), true));
     }
 
     @Override
@@ -230,7 +231,12 @@ public class SubstrateLLVMGenerator extends LLVMGenerator implements SubstrateLI
             uncompressed = builder.buildSelect(isNull, compressed, uncompressed);
         }
 
-        return new LLVMVariable(builder.buildRegisterObject(builder.buildIntToPtr(uncompressed, builder.rawPointerType())));
+        return new LLVMVariable(builder.buildRegisterObject(builder.buildIntToPtr(uncompressed, builder.rawPointerType()), false));
+    }
+
+    @Override
+    protected boolean isConstantCompressed(Constant constant) {
+        return constant instanceof SubstrateObjectConstant && ((SubstrateObjectConstant) constant).isCompressed();
     }
 
     @Override
