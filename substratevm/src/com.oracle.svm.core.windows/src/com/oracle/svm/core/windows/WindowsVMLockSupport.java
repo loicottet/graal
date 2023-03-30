@@ -236,7 +236,7 @@ final class WindowsVMMutex extends VMMutex {
 
     @Override
     public VMMutex lock() {
-        assertNotOwner("Recursive locking is not supported");
+        assert !isOwner() : "Recursive locking is not supported";
         Process.EnterCriticalSection(getStructPointer());
         setOwnerToCurrentThread();
         return this;
@@ -245,7 +245,7 @@ final class WindowsVMMutex extends VMMutex {
     @Override
     @Uninterruptible(reason = "Whole critical section needs to be uninterruptible.", callerMustBe = true)
     public void lockNoTransition() {
-        assertNotOwner("Recursive locking is not supported");
+        assert !isOwner() : "Recursive locking is not supported";
         Process.NoTransitions.EnterCriticalSection(getStructPointer());
         setOwnerToCurrentThread();
     }
