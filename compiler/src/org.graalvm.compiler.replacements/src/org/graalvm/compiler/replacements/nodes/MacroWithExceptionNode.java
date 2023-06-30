@@ -77,6 +77,14 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
     protected final InvokeKind invokeKind;
     protected final StampPair returnStamp;
 
+<<<<<<< HEAD:compiler/src/org.graalvm.compiler.replacements/src/org/graalvm/compiler/replacements/nodes/MacroWithExceptionNode.java
+=======
+    protected ResolvedJavaMethod originalTargetMethod;
+    protected StampPair originalReturnStamp;
+    @Input NodeInputList<ValueNode> originalArguments;
+
+    @SuppressWarnings("this-escape")
+>>>>>>> b538877586c (Preserve ResolvedMethodHandleCallTargetNode when creating MacroNodes):compiler/src/jdk.internal.vm.compiler/src/org/graalvm/compiler/replacements/nodes/MacroWithExceptionNode.java
     protected MacroWithExceptionNode(NodeClass<? extends MacroWithExceptionNode> c, MacroParams p) {
         super(c, p.returnStamp != null ? p.returnStamp.getTrustedStamp() : null);
         this.arguments = new NodeInputList<>(this, p.arguments);
@@ -87,6 +95,7 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
         this.invokeKind = p.invokeKind;
         assert !isPlaceholderBci(p.bci);
         assert MacroInvokable.assertArgumentCount(this);
+        this.originalArguments = new NodeInputList<>(this);
     }
 
     @Override
@@ -126,6 +135,26 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
     }
 
     @Override
+    public StampPair getReturnStamp() {
+        return returnStamp;
+    }
+
+    @Override
+    public NodeInputList<ValueNode> getOriginalArguments() {
+        return originalArguments;
+    }
+
+    @Override
+    public ResolvedJavaMethod getOriginalTargetMethod() {
+        return originalTargetMethod;
+    }
+
+    @Override
+    public StampPair getOriginalReturnStamp() {
+        return originalReturnStamp;
+    }
+
+    @Override
     protected void afterClone(Node other) {
         updateInliningLogAfterClone(other);
     }
@@ -150,7 +179,7 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
      *            different one.
      */
     public InvokeWithExceptionNode createInvoke(Node oldResult) {
-        MethodCallTargetNode callTarget = graph().add(new MethodCallTargetNode(invokeKind, targetMethod, getArguments().toArray(new ValueNode[arguments.size()]), returnStamp, null));
+        MethodCallTargetNode callTarget = createCallTarget();
         InvokeWithExceptionNode invoke = graph().add(new InvokeWithExceptionNode(callTarget, null, bci));
         if (stateAfter() != null) {
             invoke.setStateAfter(stateAfter().duplicate());
@@ -189,4 +218,11 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
         return LocationIdentity.any();
     }
 
+    @Override
+    public void addMethodHandleInfo(ResolvedMethodHandleCallTargetNode methodHandle) {
+        assert originalArguments.size() == 0 && originalReturnStamp == null & originalTargetMethod == null : this;
+        originalReturnStamp = methodHandle.originalReturnStamp;
+        originalTargetMethod = methodHandle.originalTargetMethod;
+        originalArguments.addAll(methodHandle.originalArguments);
+    }
 }

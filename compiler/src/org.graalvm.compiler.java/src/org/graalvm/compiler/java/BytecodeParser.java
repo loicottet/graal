@@ -433,6 +433,7 @@ import org.graalvm.compiler.nodes.util.GraphUtil;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.phases.OptimisticOptimizations;
 import org.graalvm.compiler.phases.util.ValueMergeUtil;
+import org.graalvm.compiler.replacements.nodes.MacroInvokable;
 import org.graalvm.compiler.serviceprovider.GraalServices;
 import org.graalvm.compiler.serviceprovider.SpeculationReasonGroup;
 import org.graalvm.word.LocationIdentity;
@@ -1661,16 +1662,12 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 return;
             }
 
-            ValueNode[] classInit = {null};
             if (classInitializationPlugin != null) {
-                classInitializationPlugin.apply(this, resolvedTarget.getDeclaringClass(), this::createCurrentFrameState, classInit);
+                classInitializationPlugin.apply(this, resolvedTarget.getDeclaringClass(), this::createCurrentFrameState);
             }
 
             ValueNode[] args = frameState.popArguments(resolvedTarget.getSignature().getParameterCount(false));
-            Invoke invoke = appendInvoke(InvokeKind.Static, resolvedTarget, args, null);
-            if (invoke != null && classInit[0] != null) {
-                invoke.setClassInit(classInit[0]);
-            }
+            appendInvoke(InvokeKind.Static, resolvedTarget, args, null);
         } else {
             handleUnresolvedInvoke(target, InvokeKind.Static);
         }
@@ -1692,10 +1689,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
     protected void genInvokeInterface(JavaType referencedType, JavaMethod target) {
         if (callTargetIsResolved(target) && (referencedType == null || referencedType instanceof ResolvedJavaType)) {
             ValueNode[] args = frameState.popArguments(target.getSignature().getParameterCount(true));
-            Invoke invoke = appendInvoke(InvokeKind.Interface, (ResolvedJavaMethod) target, args, (ResolvedJavaType) referencedType);
-            if (invoke != null) {
-                invoke.callTarget().setReferencedType((ResolvedJavaType) referencedType);
-            }
+            appendInvoke(InvokeKind.Interface, (ResolvedJavaMethod) target, args, (ResolvedJavaType) referencedType);
         } else {
             handleUnresolvedInvoke(target, InvokeKind.Interface);
         }
@@ -1818,12 +1812,12 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
     private boolean forceInliningEverything;
 
     @Override
-    public Invoke handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything) {
+    public Invokable handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything) {
         GraalError.guarantee(invokeKind != InvokeKind.Interface, "Interface invoke needs a referencedType");
         return handleReplacedInvoke(invokeKind, targetMethod, args, inlineEverything, null);
     }
 
-    public Invoke handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything, ResolvedJavaType referencedType) {
+    public Invokable handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything, ResolvedJavaType referencedType) {
         boolean previous = forceInliningEverything;
         forceInliningEverything = previous || inlineEverything;
         try {
@@ -1842,7 +1836,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         createNonInlinedInvoke(exceptionEdgeAction, bci(), callTarget, resultType);
     }
 
-    protected Invoke appendInvoke(InvokeKind initialInvokeKind, ResolvedJavaMethod initialTargetMethod, ValueNode[] args, ResolvedJavaType referencedType) {
+    protected Invokable appendInvoke(InvokeKind initialInvokeKind, ResolvedJavaMethod initialTargetMethod, ValueNode[] args, ResolvedJavaType referencedType) {
         if (!parsingIntrinsic() && DeoptALot.getValue(options)) {
             append(new DeoptimizeNode(DeoptimizationAction.None, RuntimeConstraint));
             JavaKind resultType = initialTargetMethod.getSignature().getReturnKind();
@@ -1879,6 +1873,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         InlineInfo inlineInfo = null;
         try {
             currentInvoke = new CurrentInvoke(args, invokeKind, returnType);
+            Mark pluginMark = graph.getMark();
             if (tryNodePluginForInvocation(args, targetMethod)) {
                 if (TraceParserPlugins.getValue(options)) {
                     traceWithContext("used node plugin for %s", targetMethod.format("%h.%n(%p)"));
@@ -1895,6 +1890,9 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 if (tryInvocationPlugin(invokeKind, args, targetMethod, resultType)) {
                     if (TraceParserPlugins.getValue(options)) {
                         traceWithContext("used invocation plugin for %s", targetMethod.format("%h.%n(%p)"));
+                    }
+                    if (lastInstr instanceof MacroInvokable && graph.isNew(pluginMark, lastInstr)) {
+                        return (MacroInvokable) lastInstr;
                     }
                     return null;
                 }
@@ -1953,6 +1951,9 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
             // normal invoke handling.
             invoke.setInlineControl(Invoke.InlineControl.BytecodesOnly);
         }
+        if (referencedType != null) {
+            invoke.callTarget().setReferencedType(referencedType);
+        }
         return invoke;
     }
 
@@ -1960,7 +1961,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
      * Checks that the class of the receiver of an {@link Bytecodes#INVOKEINTERFACE} invocation of a
      * private method is assignable to the interface that declared the method. If not, then
      * deoptimize so that the interpreter can throw an {@link IllegalAccessError}.
-     *
+     * <p>
      * This is a check not performed by the verifier and so must be performed at runtime.
      *
      * @param declaringClass interface declaring the callee
@@ -1975,7 +1976,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
      * Checks that the class of the receiver of an {@link Bytecodes#INVOKESPECIAL} in a method
      * declared in an interface (i.e., a default method) is assignable to the interface. If not,
      * then deoptimize so that the interpreter can throw an {@link IllegalAccessError}.
-     *
+     * <p>
      * This is a check not performed by the verifier and so must be performed at runtime.
      *
      * @param args arguments to an {@link Bytecodes#INVOKESPECIAL} implementing a direct call to a
@@ -2509,7 +2510,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
      * <pre>
      * {SPACE * n} {name of method being parsed} "(" {file name} ":" {line number} ")"
      * </pre>
-     *
+     * <p>
      * where {@code n} is the current inlining depth.
      *
      * @param format a format string
