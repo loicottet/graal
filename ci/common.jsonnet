@@ -8,17 +8,28 @@ local common_json = import "../common.json";
 {
   # JDK definitions
   # ***************
+  local jdk_base = {
+    "name":         error "name not set",         # string; the JDK provider, e.g. "jpg-jdk", "labsjdk"
+    "version":      error "version not set",      # string; full version string, e.g., "ce-21+35-jvmci-23.1-b15"
+    "jdk_version":: error "jdk_version not set",  #    int; the major JDK version, e.g., 21
+    # Optional:
+    # "build_id": "33",
+    # "release": true,
+    # "platformspecific": true,
+    # "extrabundles": ["static-libs"],
+  },
+  # ***************
   local variants(name) = [name, name + "Debug", name + "-llvm"],
   local jdks_data = {
-    oraclejdk11: common_json.jdks["oraclejdk11"] + { jdk_version:: 11 },
+    oraclejdk11: jdk_base + common_json.jdks["oraclejdk11"] + { jdk_version:: 11 },
   } + {
-    [name]: common_json.jdks[name] + { jdk_version:: 17 }
+    [name]: jdk_base + common_json.jdks[name] + { jdk_version:: 17 }
     for name in ["oraclejdk17"] + variants("labsjdk-ce-17") + variants("labsjdk-ee-17")
   } + {
-    [name]: common_json.jdks[name] + { jdk_version:: 21 }
+    [name]: jdk_base + common_json.jdks[name] + { jdk_version:: 21 }
     for name in ["oraclejdk21"] + variants("labsjdk-ce-21") + variants("labsjdk-ee-21")
   } + {
-    [name]: common_json.jdks[name] + { jdk_version:: 22 }
+    [name]: jdk_base + common_json.jdks[name] + { jdk_version:: 22 }
     for name in ["oraclejdk22"]
   },
   assert std.assertEqual(std.objectFields(common_json.jdks), std.objectFields(jdks_data)),
