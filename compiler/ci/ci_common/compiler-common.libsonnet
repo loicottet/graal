@@ -70,7 +70,6 @@
     benchmark_cmd:: if self.should_use_hwloc then bench_common.hwloc_cmd(self.plain_benchmark_cmd, self.restrict_threads, self.default_numa_node, self.hyperthreading, self.threads_per_node) else self.plain_benchmark_cmd,
     min_heap_size:: if std.objectHasAll(self.environment, 'XMS') then ["-Xms${XMS}"] else [],
     max_heap_size:: if std.objectHasAll(self.environment, 'XMX') then ["-Xmx${XMX}"] else [],
-    _WarnMissingIntrinsic:: true, # won't be needed after GR-34642
     extra_vm_args::
       ["--profiler=${MX_PROFILER}",
       "--jvm=${JVM}",
@@ -78,7 +77,6 @@
       "-XX:+PrintConcurrentLocks",
       "-Dgraal.CompilationFailureAction=Diagnose",
       "-XX:+CITime"] +
-      (if self._WarnMissingIntrinsic then ["-Dgraal.WarnMissingIntrinsic=true"] else []) +
       self.min_heap_size +
       self.max_heap_size,
     should_mx_build:: true,
