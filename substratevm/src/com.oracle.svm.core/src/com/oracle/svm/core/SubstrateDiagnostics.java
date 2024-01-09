@@ -1243,50 +1243,23 @@ public class SubstrateDiagnostics {
             if (ImageSingletons.contains(JavaMainWrapper.JavaMainSupport.class)) {
                 thunks.add(new DumpCommandLine());
             }
-<<<<<<< HEAD
             thunks.add(new DumpCounters());
-            if (RuntimeCompilation.isEnabled()) {
-                thunks.add(new DumpCodeCacheHistory());
-                thunks.add(new DumpRuntimeCodeInfoMemory());
-                thunks.add(new DumpDeoptStubPointer());
-                thunks.add(new DumpRecentDeoptimizations());
-=======
-            if (CounterSupport.isEnabled()) {
-                thunks.add(new DumpCounters());
->>>>>>> 57e04154015 (Fix registration of VM diagnostics.)
-            }
 
             resizeInitialInvocationCount();
             this.runtimeCompilationPosition = thunks.size();
         }
 
         @Platforms(Platform.HOSTED_ONLY.class)
-<<<<<<< HEAD
         public synchronized void register(DiagnosticThunk diagnosticThunk) {
-            diagnosticThunks = Arrays.copyOf(diagnosticThunks, diagnosticThunks.length + 1);
-            diagnosticThunks[diagnosticThunks.length - 1] = diagnosticThunk;
-=======
-        public synchronized void add(DiagnosticThunk thunk) {
-            thunks.add(thunk);
+            thunks.add(diagnosticThunk);
             resizeInitialInvocationCount();
         }
->>>>>>> 57e04154015 (Fix registration of VM diagnostics.)
 
         @Platforms(Platform.HOSTED_ONLY.class)
-        public synchronized void add(int insertPos, DiagnosticThunk... extraThunks) {
+        public synchronized void register(int insertPos, DiagnosticThunk... extraThunks) {
             for (int i = 0; i < extraThunks.length; i++) {
                 thunks.add(insertPos + i, extraThunks[i]);
             }
-            resizeInitialInvocationCount();
-        }
-
-<<<<<<< HEAD
-=======
-        @Platforms(Platform.HOSTED_ONLY.class)
-        public synchronized void addAfter(DiagnosticThunk thunk, Class<? extends DiagnosticThunk> before) {
-            int insertPos = indexOf(before) + 1;
-            assert insertPos > 0;
-            thunks.add(insertPos, thunk);
             resizeInitialInvocationCount();
         }
 
@@ -1296,17 +1269,6 @@ public class SubstrateDiagnostics {
             Arrays.fill(initialInvocationCount, 1);
         }
 
-        @Platforms(Platform.HOSTED_ONLY.class)
-        private int indexOf(Class<? extends DiagnosticThunk> clazz) {
-            for (int i = 0; i < thunks.size(); i++) {
-                if (thunks.get(i).getClass() == clazz) {
-                    return i;
-                }
-            }
-            throw VMError.shouldNotReachHere("Could not find diagnostic thunk " + clazz);
-        }
-
->>>>>>> 57e04154015 (Fix registration of VM diagnostics.)
         @Fold
         int size() {
             return thunks.size();
@@ -1398,7 +1360,7 @@ class SubstrateDiagnosticsFeature implements InternalFeature {
         if (RuntimeCompilation.isEnabled()) {
             int pos = registry.runtimeCompilationPosition;
             SubstrateDiagnostics.DiagnosticThunk[] thunks = {new DumpCodeCacheHistory(), new DumpRuntimeCodeInfoMemory(), new DumpDeoptStubPointer(), new DumpRecentDeoptimizations()};
-            registry.add(pos, thunks);
+            registry.register(pos, thunks);
         }
     }
 }
