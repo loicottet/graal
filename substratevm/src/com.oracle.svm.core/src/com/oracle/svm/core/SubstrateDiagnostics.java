@@ -1248,7 +1248,7 @@ public class SubstrateDiagnostics {
 
         @Platforms(Platform.HOSTED_ONLY.class)
         public synchronized void register(DiagnosticThunk diagnosticThunk) {
-            thunks.add(thunk);
+            thunks.add(diagnosticThunk);
             resizeInitialInvocationCount();
         }
 
