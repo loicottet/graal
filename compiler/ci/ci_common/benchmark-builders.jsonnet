@@ -7,6 +7,7 @@
 
   local main_builds = std.flattenArrays([
     [
+    c.daily + c.opt_post_merge + hw.e3 + jdk + cc.libgraal + bench.barista,
     c.daily + c.opt_post_merge + hw.e3 + jdk + cc.libgraal + bench.dacapo + { unicorn_pull_request_benchmarking:: {name: 'libgraal', metrics: ['time']}},
     c.weekly                   + hw.e3 + jdk + cc.libgraal + bench.dacapo_size_variants,
     c.weekly                   + hw.e3 + jdk + cc.libgraal + bench.dacapo_timing,
