@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
@@ -53,6 +54,7 @@ final class SerializationMetadataParser<C> extends SerializationConfigurationPar
     @Override
     protected void parseSerializationDescriptorObject(EconomicMap<String, Object> data, boolean lambdaCapturingType) {
         checkAttributes(data, "serialization descriptor object", List.of(TYPE_KEY), List.of(CONDITIONAL_KEY, CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY));
+        RuntimeReflectionSupport.increaseCount(false);
 
         Optional<ConfigurationTypeDescriptor> targetSerializationClass = parseTypeContents(data.get(TYPE_KEY));
         if (targetSerializationClass.isEmpty()) {

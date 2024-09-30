@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -54,9 +53,6 @@ import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.impl.ImageSingletonsSupport;
 
-import com.oracle.graal.pointsto.meta.AnalysisField;
-import com.oracle.graal.pointsto.meta.AnalysisMethod;
-import com.oracle.graal.pointsto.meta.AnalysisType;
 import com.oracle.graal.pointsto.meta.AnalysisUniverse;
 import com.oracle.graal.pointsto.reports.ReportUtils;
 import com.oracle.graal.pointsto.util.Timer;
@@ -69,7 +65,6 @@ import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.VM;
 import com.oracle.svm.core.heap.Heap;
-import com.oracle.svm.core.hub.ClassForNameSupport;
 import com.oracle.svm.core.jdk.Resources;
 import com.oracle.svm.core.layeredimagesingleton.FeatureSingleton;
 import com.oracle.svm.core.layeredimagesingleton.UnsavedSingleton;
@@ -89,7 +84,6 @@ import com.oracle.svm.hosted.ProgressReporterJsonHelper.AnalysisResults;
 import com.oracle.svm.hosted.ProgressReporterJsonHelper.GeneralInfo;
 import com.oracle.svm.hosted.ProgressReporterJsonHelper.ImageDetailKey;
 import com.oracle.svm.hosted.ProgressReporterJsonHelper.JsonMetric;
-import com.oracle.svm.hosted.ProgressReporterJsonHelper.ResourceUsageKey;
 import com.oracle.svm.hosted.c.codegen.CCompilerInvoker;
 import com.oracle.svm.hosted.image.AbstractImage.NativeImageKind;
 import com.oracle.svm.hosted.reflect.ReflectionHostedSupport;
@@ -104,7 +98,8 @@ import jdk.graal.compiler.options.OptionDescriptor;
 import jdk.graal.compiler.options.OptionKey;
 import jdk.graal.compiler.options.OptionStability;
 import jdk.graal.compiler.options.OptionValues;
-import jdk.graal.compiler.util.json.JsonWriter;
+import jdk.graal.compiler.util.json.JsonPrettyWriter;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 
 public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
     private static final int CHARACTERS_PER_LINE;
@@ -230,14 +225,14 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
     public void printInitializeEnd(List<Feature> features, ImageClassLoader classLoader) {
         stagePrinter.end(getTimer(TimerCollection.Registry.CLASSLIST).getTotalTime() + getTimer(TimerCollection.Registry.SETUP).getTotalTime());
         VM vm = ImageSingletons.lookup(VM.class);
-        recordJsonMetric(GeneralInfo.JAVA_VERSION, vm.version);
-        recordJsonMetric(GeneralInfo.VENDOR_VERSION, vm.vendorVersion);
-        recordJsonMetric(GeneralInfo.GRAALVM_VERSION, vm.vendorVersion); // deprecated
+// recordJsonMetric(GeneralInfo.JAVA_VERSION, vm.version);
+// recordJsonMetric(GeneralInfo.VENDOR_VERSION, vm.vendorVersion);
+// recordJsonMetric(GeneralInfo.GRAALVM_VERSION, vm.vendorVersion); // deprecated
         l().a(" ").doclink("Java version", "#glossary-java-info").a(": ").a(vm.version).a(", ").doclink("vendor version", "#glossary-java-info").a(": ").a(vm.vendorVersion).println();
         String optimizationLevel = SubstrateOptions.Optimize.getValue();
-        recordJsonMetric(GeneralInfo.GRAAL_COMPILER_OPTIMIZATION_LEVEL, optimizationLevel);
+// recordJsonMetric(GeneralInfo.GRAAL_COMPILER_OPTIMIZATION_LEVEL, optimizationLevel);
         String march = CPUType.getSelectedOrDefaultMArch();
-        recordJsonMetric(GeneralInfo.GRAAL_COMPILER_MARCH, march);
+// recordJsonMetric(GeneralInfo.GRAAL_COMPILER_MARCH, march);
         DirectPrinter graalLine = l().a(" ").doclink("Graal compiler", "#glossary-graal-compiler").a(": optimization level: %s, target machine: %s", optimizationLevel, march);
         ImageSingletons.lookup(ProgressReporterFeature.class).appendGraalSuffix(graalLine);
         graalLine.println();
@@ -246,9 +241,9 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
             cCompilerShort = ImageSingletons.lookup(CCompilerInvoker.class).compilerInfo.getShortDescription();
             l().a(" ").doclink("C compiler", "#glossary-ccompiler").a(": ").a(cCompilerShort).println();
         }
-        recordJsonMetric(GeneralInfo.CC, cCompilerShort);
+// recordJsonMetric(GeneralInfo.CC, cCompilerShort);
         String gcName = Heap.getHeap().getGC().getName();
-        recordJsonMetric(GeneralInfo.GC, gcName);
+// recordJsonMetric(GeneralInfo.GC, gcName);
         long maxHeapSize = SubstrateGCOptions.MaxHeapSize.getValue();
         String maxHeapValue = maxHeapSize == 0 ? Heap.getHeap().getGC().getDefaultMaxHeapSize() : ByteFormattingUtil.bytesToHuman(maxHeapSize);
         l().a(" ").doclink("Garbage collector", "#glossary-gc").a(": ").a(gcName).a(" (").doclink("max heap size", "#glossary-gc-max-heap-size").a(": ").a(maxHeapValue).a(")").println();
@@ -418,9 +413,9 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
     private void printResourceInfo() {
         Runtime runtime = Runtime.getRuntime();
         long maxMemory = runtime.maxMemory();
-        recordJsonMetric(ResourceUsageKey.GC_MAX_HEAP, maxMemory);
+// recordJsonMetric(ResourceUsageKey.GC_MAX_HEAP, maxMemory);
         long totalMemorySize = getOperatingSystemMXBean().getTotalMemorySize();
-        recordJsonMetric(ResourceUsageKey.MEMORY_TOTAL, totalMemorySize);
+// recordJsonMetric(ResourceUsageKey.MEMORY_TOTAL, totalMemorySize);
 
         List<String> inputArguments = ManagementFactory.getRuntimeMXBean().getInputArguments();
         List<String> maxRAMPercentageValues = inputArguments.stream().filter(arg -> arg.startsWith("-XX:MaxRAMPercentage=") || arg.startsWith("-XX:MaximumHeapSizePercent=")).toList();
@@ -436,9 +431,9 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
         }
 
         int maxNumberOfThreads = NativeImageOptions.getActualNumberOfThreads();
-        recordJsonMetric(ResourceUsageKey.PARALLELISM, maxNumberOfThreads);
+// recordJsonMetric(ResourceUsageKey.PARALLELISM, maxNumberOfThreads);
         int availableProcessors = runtime.availableProcessors();
-        recordJsonMetric(ResourceUsageKey.CPU_CORES_TOTAL, availableProcessors);
+// recordJsonMetric(ResourceUsageKey.CPU_CORES_TOTAL, availableProcessors);
         String maxNumberOfThreadsSuffix = "determined at start";
         if (NativeImageOptions.NumberOfThreads.hasBeenSet()) {
             maxNumberOfThreadsSuffix = "set via '%s'".formatted(SubstrateOptionsParser.commandArgument(NativeImageOptions.NumberOfThreads, Integer.toString(maxNumberOfThreads)));
@@ -476,81 +471,96 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
     }
 
     private void printAnalysisStatistics(AnalysisUniverse universe, Collection<String> libraries) {
-        String actualFormat = "%,9d ";
-        String totalFormat = " (%4.1f%% of %,8d total)";
-        long reachableTypes;
-        if (universe.hostVM().useBaseLayer()) {
-            reachableTypes = universe.getTypes().stream().filter(AnalysisType::isReachable).filter(t -> !t.isInBaseLayer()).count();
-        } else {
-            reachableTypes = universe.getTypes().stream().filter(AnalysisType::isReachable).count();
-        }
-        long totalTypes = universe.getTypes().size();
-        recordJsonMetric(AnalysisResults.TYPES_TOTAL, totalTypes);
-        recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_TOTAL, totalTypes);
-        recordJsonMetric(AnalysisResults.TYPES_REACHABLE, reachableTypes);
-        recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_REACHABLE, reachableTypes);
-        l().a(actualFormat, reachableTypes).doclink("reachable types", "#glossary-reachability").a("  ")
-                        .a(totalFormat, Utils.toPercentage(reachableTypes, totalTypes), totalTypes).println();
-        Collection<AnalysisField> fields = universe.getFields();
-        long reachableFields;
-        if (universe.hostVM().useBaseLayer()) {
-            reachableFields = fields.stream().filter(AnalysisField::isAccessed).filter(f -> !f.isInBaseLayer()).count();
-        } else {
-            reachableFields = fields.stream().filter(AnalysisField::isAccessed).count();
-        }
-        int totalFields = fields.size();
-        recordJsonMetric(AnalysisResults.FIELD_TOTAL, totalFields);
-        recordJsonMetric(AnalysisResults.FIELD_REACHABLE, reachableFields);
-        l().a(actualFormat, reachableFields).doclink("reachable fields", "#glossary-reachability").a(" ")
-                        .a(totalFormat, Utils.toPercentage(reachableFields, totalFields), totalFields).println();
-        Collection<AnalysisMethod> methods = universe.getMethods();
-        long reachableMethods;
-        if (universe.hostVM().useBaseLayer()) {
-            reachableMethods = methods.stream().filter(AnalysisMethod::isReachable).filter(m -> !m.isInBaseLayer()).count();
-        } else {
-            reachableMethods = methods.stream().filter(AnalysisMethod::isReachable).count();
-        }
-        int totalMethods = methods.size();
-        recordJsonMetric(AnalysisResults.METHOD_TOTAL, totalMethods);
-        recordJsonMetric(AnalysisResults.METHOD_REACHABLE, reachableMethods);
-        l().a(actualFormat, reachableMethods).doclink("reachable methods", "#glossary-reachability")
-                        .a(totalFormat, Utils.toPercentage(reachableMethods, totalMethods), totalMethods).println();
-        if (numRuntimeCompiledMethods >= 0) {
-            recordJsonMetric(ImageDetailKey.RUNTIME_COMPILED_METHODS_COUNT, numRuntimeCompiledMethods);
-            l().a(actualFormat, numRuntimeCompiledMethods).doclink("runtime compiled methods", "#glossary-runtime-methods")
-                            .a(totalFormat, Utils.toPercentage(numRuntimeCompiledMethods, totalMethods), totalMethods).println();
-        }
-        String typesFieldsMethodFormat = "%,9d types, %,5d fields, and %,5d methods ";
-        int reflectClassesCount = ClassForNameSupport.singleton().count();
-        ReflectionHostedSupport rs = ImageSingletons.lookup(ReflectionHostedSupport.class);
-        int reflectFieldsCount = rs.getReflectionFieldsCount();
-        int reflectMethodsCount = rs.getReflectionMethodsCount();
-        recordJsonMetric(AnalysisResults.METHOD_REFLECT, reflectMethodsCount);
-        recordJsonMetric(AnalysisResults.TYPES_REFLECT, reflectClassesCount);
-        recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_REFLECT, reflectClassesCount);
-        recordJsonMetric(AnalysisResults.FIELD_REFLECT, reflectFieldsCount);
-        l().a(typesFieldsMethodFormat, reflectClassesCount, reflectFieldsCount, reflectMethodsCount)
-                        .doclink("registered for reflection", "#glossary-reflection-registrations").println();
-        recordJsonMetric(AnalysisResults.METHOD_JNI, (numJNIMethods >= 0 ? numJNIMethods : UNAVAILABLE_METRIC));
-        recordJsonMetric(AnalysisResults.TYPES_JNI, (numJNIClasses >= 0 ? numJNIClasses : UNAVAILABLE_METRIC));
-        recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_JNI, (numJNIClasses >= 0 ? numJNIClasses : UNAVAILABLE_METRIC));
-        recordJsonMetric(AnalysisResults.FIELD_JNI, (numJNIFields >= 0 ? numJNIFields : UNAVAILABLE_METRIC));
-        if (numJNIClasses >= 0) {
-            l().a(typesFieldsMethodFormat, numJNIClasses, numJNIFields, numJNIMethods)
-                            .doclink("registered for JNI access", "#glossary-jni-access-registrations").println();
-        }
-        String stubsFormat = "%,9d downcalls and %,d upcalls ";
-        recordJsonMetric(AnalysisResults.FOREIGN_DOWNCALLS, (numForeignDowncalls >= 0 ? numForeignDowncalls : UNAVAILABLE_METRIC));
-        recordJsonMetric(AnalysisResults.FOREIGN_UPCALLS, (numForeignUpcalls >= 0 ? numForeignUpcalls : UNAVAILABLE_METRIC));
-        if (numForeignDowncalls >= 0 || numForeignUpcalls >= 0) {
-            l().a(stubsFormat, numForeignDowncalls, numForeignUpcalls)
-                            .doclink("registered for foreign access", "#glossary-foreign-downcall-and-upcall-registrations").println();
-        }
-        int numLibraries = libraries.size();
-        if (numLibraries > 0) {
-            TreeSet<String> sortedLibraries = new TreeSet<>(libraries);
-            l().a("%,9d native %s: ", numLibraries, numLibraries == 1 ? "library" : "libraries").a(String.join(", ", sortedLibraries)).println();
-        }
+        recordJsonMetric(AnalysisResults.ALL_CONFIG_ENTRIES, RuntimeReflectionSupport.getCount(false));
+        recordJsonMetric(AnalysisResults.RELEVANT_CONFIG_ENTRIES, RuntimeReflectionSupport.getCount(true));
+// String actualFormat = "%,9d ";
+// String totalFormat = " (%4.1f%% of %,8d total)";
+// long reachableTypes;
+// if (universe.hostVM().useBaseLayer()) {
+// reachableTypes = universe.getTypes().stream().filter(AnalysisType::isReachable).filter(t ->
+// !t.isInBaseLayer()).count();
+// } else {
+// reachableTypes = universe.getTypes().stream().filter(AnalysisType::isReachable).count();
+// }
+// long totalTypes = universe.getTypes().size();
+// recordJsonMetric(AnalysisResults.TYPES_TOTAL, totalTypes);
+// recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_TOTAL, totalTypes);
+// recordJsonMetric(AnalysisResults.TYPES_REACHABLE, reachableTypes);
+// recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_REACHABLE, reachableTypes);
+// l().a(actualFormat, reachableTypes).doclink("reachable types", "#glossary-reachability").a(" ")
+// .a(totalFormat, Utils.toPercentage(reachableTypes, totalTypes), totalTypes).println();
+// Collection<AnalysisField> fields = universe.getFields();
+// long reachableFields;
+// if (universe.hostVM().useBaseLayer()) {
+// reachableFields = fields.stream().filter(AnalysisField::isAccessed).filter(f ->
+// !f.isInBaseLayer()).count();
+// } else {
+// reachableFields = fields.stream().filter(AnalysisField::isAccessed).count();
+// }
+// int totalFields = fields.size();
+// recordJsonMetric(AnalysisResults.FIELD_TOTAL, totalFields);
+// recordJsonMetric(AnalysisResults.FIELD_REACHABLE, reachableFields);
+// l().a(actualFormat, reachableFields).doclink("reachable fields", "#glossary-reachability").a(" ")
+// .a(totalFormat, Utils.toPercentage(reachableFields, totalFields), totalFields).println();
+// Collection<AnalysisMethod> methods = universe.getMethods();
+// long reachableMethods;
+// if (universe.hostVM().useBaseLayer()) {
+// reachableMethods = methods.stream().filter(AnalysisMethod::isReachable).filter(m ->
+// !m.isInBaseLayer()).count();
+// } else {
+// reachableMethods = methods.stream().filter(AnalysisMethod::isReachable).count();
+// }
+// int totalMethods = methods.size();
+// recordJsonMetric(AnalysisResults.METHOD_TOTAL, totalMethods);
+// recordJsonMetric(AnalysisResults.METHOD_REACHABLE, reachableMethods);
+// l().a(actualFormat, reachableMethods).doclink("reachable methods", "#glossary-reachability")
+// .a(totalFormat, Utils.toPercentage(reachableMethods, totalMethods), totalMethods).println();
+// if (numRuntimeCompiledMethods >= 0) {
+// recordJsonMetric(ImageDetailKey.RUNTIME_COMPILED_METHODS_COUNT, numRuntimeCompiledMethods);
+// l().a(actualFormat, numRuntimeCompiledMethods).doclink("runtime compiled methods",
+// "#glossary-runtime-methods")
+// .a(totalFormat, Utils.toPercentage(numRuntimeCompiledMethods, totalMethods),
+// totalMethods).println();
+// }
+// String typesFieldsMethodFormat = "%,9d types, %,5d fields, and %,5d methods ";
+// int reflectClassesCount = ClassForNameSupport.singleton().count();
+// ReflectionHostedSupport rs = ImageSingletons.lookup(ReflectionHostedSupport.class);
+// int reflectFieldsCount = rs.getReflectionFieldsCount();
+// int reflectMethodsCount = rs.getReflectionMethodsCount();
+// recordJsonMetric(AnalysisResults.METHOD_REFLECT, reflectMethodsCount);
+// recordJsonMetric(AnalysisResults.TYPES_REFLECT, reflectClassesCount);
+// recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_REFLECT, reflectClassesCount);
+// recordJsonMetric(AnalysisResults.FIELD_REFLECT, reflectFieldsCount);
+// l().a(typesFieldsMethodFormat, reflectClassesCount, reflectFieldsCount, reflectMethodsCount)
+// .doclink("registered for reflection", "#glossary-reflection-registrations").println();
+// recordJsonMetric(AnalysisResults.METHOD_JNI, (numJNIMethods >= 0 ? numJNIMethods :
+// UNAVAILABLE_METRIC));
+// recordJsonMetric(AnalysisResults.TYPES_JNI, (numJNIClasses >= 0 ? numJNIClasses :
+// UNAVAILABLE_METRIC));
+// recordJsonMetric(AnalysisResults.DEPRECATED_CLASS_JNI, (numJNIClasses >= 0 ? numJNIClasses :
+// UNAVAILABLE_METRIC));
+// recordJsonMetric(AnalysisResults.FIELD_JNI, (numJNIFields >= 0 ? numJNIFields :
+// UNAVAILABLE_METRIC));
+// if (numJNIClasses >= 0) {
+// l().a(typesFieldsMethodFormat, numJNIClasses, numJNIFields, numJNIMethods)
+// .doclink("registered for JNI access", "#glossary-jni-access-registrations").println();
+// }
+// String stubsFormat = "%,9d downcalls and %,d upcalls ";
+// recordJsonMetric(AnalysisResults.FOREIGN_DOWNCALLS, (numForeignDowncalls >= 0 ?
+// numForeignDowncalls : UNAVAILABLE_METRIC));
+// recordJsonMetric(AnalysisResults.FOREIGN_UPCALLS, (numForeignUpcalls >= 0 ? numForeignUpcalls :
+// UNAVAILABLE_METRIC));
+// if (numForeignDowncalls >= 0 || numForeignUpcalls >= 0) {
+// l().a(stubsFormat, numForeignDowncalls, numForeignUpcalls)
+// .doclink("registered for foreign access",
+// "#glossary-foreign-downcall-and-upcall-registrations").println();
+// }
+// int numLibraries = libraries.size();
+// if (numLibraries > 0) {
+// TreeSet<String> sortedLibraries = new TreeSet<>(libraries);
+// l().a("%,9d native %s: ", numLibraries, numLibraries == 1 ? "library" :
+// "libraries").a(String.join(", ", sortedLibraries)).println();
+// }
     }
 
     public ReporterClosable printUniverse() {
@@ -583,7 +593,7 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
     }
 
     public void printCreationEnd(int imageFileSize, int heapObjectCount, long imageHeapSize, int codeAreaSize, int numCompilations, int debugInfoSize) {
-        recordJsonMetric(ImageDetailKey.IMAGE_HEAP_OBJECT_COUNT, heapObjectCount);
+// recordJsonMetric(ImageDetailKey.IMAGE_HEAP_OBJECT_COUNT, heapObjectCount);
         Timer imageTimer = getTimer(TimerCollection.Registry.IMAGE);
         Timer writeTimer = getTimer(TimerCollection.Registry.WRITE);
         Timer archiveTimer = getTimer(TimerCollection.Registry.ARCHIVE_LAYER);
@@ -593,11 +603,11 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
         l().a(format, ByteFormattingUtil.bytesToHuman(codeAreaSize), Utils.toPercentage(codeAreaSize, imageFileSize))
                         .doclink("code area", "#glossary-code-area").a(":%,10d compilation units", numCompilations).println();
         int numResources = Resources.singleton().count();
-        recordJsonMetric(ImageDetailKey.IMAGE_HEAP_RESOURCE_COUNT, numResources);
+// recordJsonMetric(ImageDetailKey.IMAGE_HEAP_RESOURCE_COUNT, numResources);
         l().a(format, ByteFormattingUtil.bytesToHuman(imageHeapSize), Utils.toPercentage(imageHeapSize, imageFileSize))
                         .doclink("image heap", "#glossary-image-heap").a(":%,9d objects and %,d resources", heapObjectCount, numResources).println();
         if (debugInfoSize > 0) {
-            recordJsonMetric(ImageDetailKey.DEBUG_INFO_SIZE, debugInfoSize); // Optional metric
+// recordJsonMetric(ImageDetailKey.DEBUG_INFO_SIZE, debugInfoSize); // Optional metric
             DirectPrinter l = l().a(format, ByteFormattingUtil.bytesToHuman(debugInfoSize), Utils.toPercentage(debugInfoSize, imageFileSize))
 
                             .doclink("debug info", "#glossary-debug-info");
@@ -607,10 +617,10 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
             l.println();
         }
         long otherBytes = imageFileSize - codeAreaSize - imageHeapSize - debugInfoSize;
-        recordJsonMetric(ImageDetailKey.IMAGE_HEAP_SIZE, imageHeapSize);
+// recordJsonMetric(ImageDetailKey.IMAGE_HEAP_SIZE, imageHeapSize);
         recordJsonMetric(ImageDetailKey.TOTAL_SIZE, imageFileSize);
-        recordJsonMetric(ImageDetailKey.CODE_AREA_SIZE, codeAreaSize);
-        recordJsonMetric(ImageDetailKey.NUM_COMP_UNITS, numCompilations);
+// recordJsonMetric(ImageDetailKey.CODE_AREA_SIZE, codeAreaSize);
+// recordJsonMetric(ImageDetailKey.NUM_COMP_UNITS, numCompilations);
         l().a(format, ByteFormattingUtil.bytesToHuman(otherBytes), Utils.toPercentage(otherBytes, imageFileSize))
                         .doclink("other data", "#glossary-other-data").println();
         l().a("%9s in total", ByteFormattingUtil.bytesToHuman(imageFileSize)).println();
@@ -731,7 +741,7 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
         printResourceStatistics();
 
         double totalSeconds = Utils.millisToSeconds(getTimer(TimerCollection.Registry.TOTAL).getTotalTime());
-        recordJsonMetric(ResourceUsageKey.TOTAL_SECS, totalSeconds);
+// recordJsonMetric(ResourceUsageKey.TOTAL_SECS, totalSeconds);
 
         createAdditionalArtifacts(imageName, generator, wasSuccessfulBuild, parsedHostedOptions);
         printArtifacts(BuildArtifacts.singleton());
@@ -787,6 +797,7 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
         if (buildOutputJSONFile.isPresent()) {
             artifacts.add(ArtifactType.BUILD_INFO, reportBuildOutput(buildOutputJSONFile.get()));
         }
+        artifacts.add(ArtifactType.BUILD_INFO, reportBuildOutput(NativeImageGenerator.generatedFiles(HostedOptionValues.singleton()).resolve("reports").resolve("stats.json")));
         if (generator.getBigbang() != null && ImageBuildStatistics.Options.CollectImageBuildStatistics.getValue(parsedHostedOptions)) {
             artifacts.add(ArtifactType.BUILD_INFO, reportImageBuildStatistics());
         }
@@ -813,7 +824,7 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
         String description = "image statistics in json";
         return ReportUtils.report(description, jsonOutputFile.toAbsolutePath(), out -> {
             try {
-                jsonHelper.print(new JsonWriter(out));
+                jsonHelper.print(new JsonPrettyWriter(out));
             } catch (IOException e) {
                 throw VMError.shouldNotReachHere("Failed to create " + jsonOutputFile, e);
             }
@@ -830,8 +841,8 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
         double totalProcessTimeSeconds = Utils.millisToSeconds(ManagementFactory.getRuntimeMXBean().getUptime());
         GCStats gcStats = GCStats.getCurrent();
         double gcSeconds = Utils.millisToSeconds(gcStats.totalTimeMillis);
-        recordJsonMetric(ResourceUsageKey.GC_COUNT, gcStats.totalCount);
-        recordJsonMetric(ResourceUsageKey.GC_SECS, gcSeconds);
+// recordJsonMetric(ResourceUsageKey.GC_COUNT, gcStats.totalCount);
+// recordJsonMetric(ResourceUsageKey.GC_SECS, gcSeconds);
         CenteredTextPrinter p = centered();
         p.a("%.1fs (%.1f%% of total time) in %d ", gcSeconds, gcSeconds / totalProcessTimeSeconds * 100, gcStats.totalCount)
                         .doclink("GCs", "#glossary-garbage-collections");
@@ -839,14 +850,14 @@ public class ProgressReporter implements FeatureSingleton, UnsavedSingleton {
         if (peakRSS >= 0) {
             p.a(" | ").doclink("Peak RSS", "#glossary-peak-rss").a(": ").a(ByteFormattingUtil.bytesToHuman(peakRSS));
         }
-        recordJsonMetric(ResourceUsageKey.PEAK_RSS, (peakRSS >= 0 ? peakRSS : UNAVAILABLE_METRIC));
+// recordJsonMetric(ResourceUsageKey.PEAK_RSS, (peakRSS >= 0 ? peakRSS : UNAVAILABLE_METRIC));
         long processCPUTime = getOperatingSystemMXBean().getProcessCpuTime();
         double cpuLoad = UNAVAILABLE_METRIC;
         if (processCPUTime > 0) {
             cpuLoad = Utils.nanosToSeconds(processCPUTime) / totalProcessTimeSeconds;
             p.a(" | ").doclink("CPU load", "#glossary-cpu-load").a(": ").a("%.2f", cpuLoad);
         }
-        recordJsonMetric(ResourceUsageKey.CPU_LOAD, cpuLoad);
+// recordJsonMetric(ResourceUsageKey.CPU_LOAD, cpuLoad);
         p.flushln();
     }
 
