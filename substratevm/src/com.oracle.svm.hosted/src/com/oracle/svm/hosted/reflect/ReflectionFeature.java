@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.hosted.reflect;
 
+import static com.oracle.svm.core.configure.ConfigurationParser.JNI_KEY;
 import static com.oracle.svm.core.configure.ConfigurationParser.REFLECTION_KEY;
 
 import java.lang.invoke.MethodHandle;
@@ -283,6 +284,9 @@ public class ReflectionFeature implements InternalFeature, ReflectionSubstitutio
         ReflectionConfigurationParser<ConfigurationCondition, Class<?>> parser = ConfigurationParserUtils.create(REFLECTION_KEY, true, conditionResolver, reflectionData, proxyRegistry,
                         access.getImageClassLoader());
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "reflection");
+        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> jniParser = ConfigurationParserUtils.create(JNI_KEY, true, conditionResolver, reflectionData, proxyRegistry,
+                access.getImageClassLoader());
+        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(jniParser, access.getImageClassLoader(), "JNI");
         ReflectionConfigurationParser<ConfigurationCondition, Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, conditionResolver, reflectionData, proxyRegistry,
                         access.getImageClassLoader());
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "reflection",

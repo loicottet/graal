@@ -47,7 +47,7 @@ final class LegacyReflectionConfigurationParser<C, T> extends ReflectionConfigur
 
     LegacyReflectionConfigurationParser(ConfigurationConditionResolver<C> conditionResolver, ReflectionConfigurationParserDelegate<C, T> delegate, boolean strictConfiguration,
                     boolean printMissingElements, boolean treatAllNameEntriesAsType) {
-        super(conditionResolver, delegate, strictConfiguration, printMissingElements);
+        super(conditionResolver, delegate, strictConfiguration, printMissingElements, "");
         this.treatAllNameEntriesAsType = treatAllNameEntriesAsType;
     }
 
