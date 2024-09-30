@@ -41,12 +41,9 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
                     "allDeclaredConstructors", "allPublicConstructors", "allDeclaredMethods", "allPublicMethods", "allDeclaredFields", "allPublicFields",
                     "methods", "fields", "unsafeAllocated");
 
-    private final String combinedFileKey;
-
     ReflectionMetadataParser(String combinedFileKey, ConfigurationConditionResolver<C> conditionResolver, ReflectionConfigurationParserDelegate<C, T> delegate, boolean strictConfiguration,
                     boolean printMissingElements) {
-        super(conditionResolver, delegate, strictConfiguration, printMissingElements);
-        this.combinedFileKey = combinedFileKey;
+        super(conditionResolver, delegate, strictConfiguration, printMissingElements, combinedFileKey);
     }
 
     @Override
@@ -60,7 +57,9 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
     @Override
     protected void parseClass(EconomicMap<String, Object> data) {
         checkAttributes(data, "reflection class descriptor object", List.of(TYPE_KEY), OPTIONAL_REFLECT_METADATA_ATTRS);
-        RuntimeReflectionSupport.increaseCount(false);
+        if (delegate.getClass().getName().contains("ReflectionRegistryAdapter")) {
+            RuntimeReflectionSupport.increaseCount(combinedFileKey.equals(REFLECTION_KEY));
+        }
 
         Optional<ConfigurationTypeDescriptor> type = parseTypeContents(data.get(TYPE_KEY));
         if (type.isEmpty()) {
