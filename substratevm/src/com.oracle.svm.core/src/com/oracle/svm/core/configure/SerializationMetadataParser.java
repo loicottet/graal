@@ -50,7 +50,7 @@ final class SerializationMetadataParser<C> extends SerializationConfigurationPar
     @Override
     protected void parseSerializationDescriptorObject(EconomicMap<String, Object> data, boolean lambdaCapturingType) {
         checkAttributes(data, "serialization descriptor object", List.of(TYPE_KEY), List.of(CONDITIONAL_KEY, CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY));
-        RuntimeReflectionSupport.increaseCount(false);
+        RuntimeReflectionSupport.increaseCount(true);
 
         Optional<ConfigurationTypeDescriptor> targetSerializationClass = parseTypeContents(data.get(TYPE_KEY));
         if (targetSerializationClass.isEmpty()) {

@@ -39,6 +39,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +50,15 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
+import com.oracle.svm.core.TypeResult;
+import com.oracle.svm.core.configure.ConfigurationParser;
+import com.oracle.svm.core.configure.ConfigurationTypeDescriptor;
+import com.oracle.svm.core.configure.NamedConfigurationTypeDescriptor;
+import com.oracle.svm.core.configure.ProxyConfigurationTypeDescriptor;
+import com.oracle.svm.core.configure.ReflectionConfigurationParser;
+import com.oracle.svm.core.configure.ReflectionConfigurationParserDelegate;
+import com.oracle.svm.core.jdk.proxy.DynamicProxyRegistry;
+import com.oracle.svm.hosted.config.ReflectionRegistryAdapter;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
 import org.graalvm.nativeimage.hosted.RuntimeReflection;
@@ -109,6 +119,8 @@ import jdk.vm.ci.meta.ResolvedJavaField;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 import jdk.vm.ci.meta.ResolvedJavaType;
 
+import static com.oracle.svm.core.MissingRegistrationUtils.throwMissingRegistrationErrors;
+
 @AutomaticallyRegisteredFeature
 public class SerializationFeature implements InternalFeature {
     final Set<Class<?>> capturingClasses = ConcurrentHashMap.newKeySet();
@@ -136,6 +148,170 @@ public class SerializationFeature implements InternalFeature {
                         strictConfiguration);
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, imageClassLoader, "serialization");
 
+        var delegate = new ReflectionConfigurationParserDelegate<ConfigurationCondition, Class<?>>() {
+            @Override
+            public TypeResult<Class<?>> resolveType(ConfigurationCondition condition, ConfigurationTypeDescriptor typeDescriptor, boolean allowPrimitives) {
+                switch (typeDescriptor.getDescriptorType()) {
+                    case NAMED -> {
+                        NamedConfigurationTypeDescriptor namedDescriptor = (NamedConfigurationTypeDescriptor) typeDescriptor;
+                        TypeResult<Class<?>> result = resolveNamedType(namedDescriptor, allowPrimitives);
+                        return result;
+                    }
+                    case PROXY -> {
+                        return resolveProxyType((ProxyConfigurationTypeDescriptor) typeDescriptor);
+                    }
+                    default -> {
+                        throw VMError.shouldNotReachHere("Unknown type descriptor kind: %s", typeDescriptor.getDescriptorType());
+                    }
+                }
+            }
+
+            private TypeResult<Class<?>> resolveNamedType(NamedConfigurationTypeDescriptor typeDescriptor, boolean allowPrimitives) {
+                TypeResult<Class<?>> result = imageClassLoader.findClass(typeDescriptor.name(), allowPrimitives);
+                if (!result.isPresent() && result.getException() instanceof NoClassDefFoundError) {
+                    /*
+                     * In certain cases when the class name is identical to an existing class name except
+                     * for lettercase, `ClassLoader.findClass` throws a `NoClassDefFoundError` but
+                     * `Class.forName` throws a `ClassNotFoundException`.
+                     */
+                    try {
+                        Class.forName(typeDescriptor.name());
+                    } catch (ClassNotFoundException notFoundException) {
+                        result = TypeResult.forException(typeDescriptor.name(), notFoundException);
+                    } catch (Throwable t) {
+                        // ignore
+                    }
+                }
+                return result;
+            }
+
+            private TypeResult<Class<?>> resolveProxyType(ProxyConfigurationTypeDescriptor typeDescriptor) {
+                String typeName = typeDescriptor.toString();
+                List<TypeResult<Class<?>>> interfaceResults = typeDescriptor.interfaceNames().stream().map(name -> resolveNamedType(new NamedConfigurationTypeDescriptor(name), false)).toList();
+                List<Class<?>> interfaces = new ArrayList<>();
+                for (TypeResult<Class<?>> intf : interfaceResults) {
+                    if (!intf.isPresent()) {
+                        return TypeResult.forException(typeName, intf.getException());
+                    }
+                    interfaces.add(intf.get());
+                }
+                try {
+                    DynamicProxyRegistry proxyRegistry = ImageSingletons.lookup(DynamicProxyRegistry.class);
+                    Class<?> proxyClass = proxyRegistry.getProxyClassHosted(interfaces.toArray(Class<?>[]::new));
+                    return TypeResult.forType(typeName, proxyClass);
+                } catch (Throwable t) {
+                    return TypeResult.forException(typeName, t);
+                }
+            }
+
+            @Override
+            public void registerType(ConfigurationCondition condition, Class<?> type) {
+                RuntimeSerializationSupport.singleton().register(condition, type);
+            }
+
+            @Override
+            public void registerPublicClasses(ConfigurationCondition condition, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerDeclaredClasses(ConfigurationCondition condition, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerRecordComponents(ConfigurationCondition condition, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerPermittedSubclasses(ConfigurationCondition condition, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerNestMembers(ConfigurationCondition condition, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerSigners(ConfigurationCondition condition, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerPublicFields(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerDeclaredFields(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+
+            }
+
+            @Override
+            public void registerField(ConfigurationCondition condition, Class<?> type, String fieldName, boolean allowWrite) throws NoSuchFieldException {
+
+            }
+
+            @Override
+            public boolean registerAllMethodsWithName(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, String methodName) {
+                return true;
+            }
+
+            @Override
+            public void registerMethod(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, String methodName, List<Class<?>> methodParameterTypes) throws NoSuchMethodException {
+
+            }
+
+            @Override
+            public void registerConstructor(ConfigurationCondition condition, boolean queriedOnly, Class<?> type, List<Class<?>> methodParameterTypes) throws NoSuchMethodException {
+
+            }
+
+            @Override
+            public boolean registerAllConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
+                return true;
+            }
+
+            @Override
+            public void registerUnsafeAllocated(ConfigurationCondition condition, Class<?> clazz) {
+
+            }
+
+            @Override
+            public String getTypeName(Class<?> type) {
+                return type.getTypeName();
+            }
+
+            @Override
+            public String getSimpleName(Class<?> type) {
+                return type.getName();
+            }
+        };
+        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> reflectParser = ReflectionConfigurationParser.create(ConfigurationParser.REFLECTION_KEY, true, conditionResolver, delegate, true, false, false);
+        loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(reflectParser, imageClassLoader, "serialization");
+
         SerializationConfigurationParser<ConfigurationCondition> denyCollectorParser = SerializationConfigurationParser.create(false, conditionResolver, serializationDenyRegistry,
                         strictConfiguration);
         ConfigurationParserUtils.parseAndRegisterConfigurations(denyCollectorParser, imageClassLoader, "serialization",
@@ -147,6 +323,10 @@ public class SerializationFeature implements InternalFeature {
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, imageClassLoader, "serialization",
                         ConfigurationFiles.Options.SerializationConfigurationFiles, ConfigurationFiles.Options.SerializationConfigurationResources,
                         ConfigurationFile.SERIALIZATION.getFileName());
+        var legacyReflectionParser = ReflectionConfigurationParser.create(null, false, conditionResolver, delegate, true, false, false);
+        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyReflectionParser, imageClassLoader, "serialization",
+                ConfigurationFiles.Options.ReflectionConfigurationFiles, ConfigurationFiles.Options.ReflectionConfigurationResources,
+                ConfigurationFile.REFLECTION.getFileName());
 
     }
 
