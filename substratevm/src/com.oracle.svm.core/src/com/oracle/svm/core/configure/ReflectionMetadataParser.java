@@ -107,7 +107,7 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
         registerIfNotDefault(data, false, clazz, "allPublicMethods", () -> delegate.registerPublicMethods(condition, false, clazz));
         registerIfNotDefault(data, true, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
         registerIfNotDefault(data, true, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
+        registerIfNotDefault(data, true, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
 
         MapCursor<String, Object> cursor = data.getEntries();
         while (cursor.advance()) {

@@ -117,7 +117,7 @@ final class LegacyReflectionConfigurationParser<C, T> extends ReflectionConfigur
             delegate.registerDeclaredFields(queryCondition, false, clazz);
             delegate.registerPublicFields(queryCondition, false, clazz);
         }
-        registerIfNotDefault(data, false, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
+        registerIfNotDefault(data, true, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
         MapCursor<String, Object> cursor = data.getEntries();
         while (cursor.advance()) {
             String name = cursor.getKey();
