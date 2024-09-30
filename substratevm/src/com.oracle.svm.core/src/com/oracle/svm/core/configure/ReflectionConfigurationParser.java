@@ -77,7 +77,7 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
 
     protected void registerIfNotDefault(EconomicMap<String, Object> data, boolean defaultValue, T clazz, String propertyName, Runnable register) {
         if (data.containsKey(propertyName)) {
-            RuntimeReflectionSupport.increaseCount(false);
+            RuntimeReflectionSupport.increaseCount(defaultValue);
         }
         if (data.containsKey(propertyName) ? asBoolean(data.get(propertyName), propertyName) : defaultValue) {
             try {
