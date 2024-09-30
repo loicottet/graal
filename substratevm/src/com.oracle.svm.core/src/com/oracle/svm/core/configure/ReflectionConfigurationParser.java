@@ -111,13 +111,13 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
 
     protected void parseMethods(C condition, boolean queriedOnly, List<Object> methods, T clazz) {
         for (Object method : methods) {
-            parseMethod(condition, queriedOnly, asMap(method, "Elements of 'methods' array must be method descriptor objects"), clazz);
+            parseMethod(condition, queriedOnly, asMap(method, "Elements of 'methods' array must be method descriptor objects"), clazz, method == methods.getFirst());
         }
     }
 
-    private void parseMethod(C condition, boolean queriedOnly, EconomicMap<String, Object> data, T clazz) {
+    private void parseMethod(C condition, boolean queriedOnly, EconomicMap<String, Object> data, T clazz, boolean first) {
         checkAttributes(data, "reflection method descriptor object", Collections.singleton("name"), Collections.singleton("parameterTypes"));
-        RuntimeReflectionSupport.increaseCount(false);
+        RuntimeReflectionSupport.increaseCount(!first);
         String methodName = asString(data.get("name"), "name");
         List<T> methodParameterTypes = null;
         Object parameterTypes = data.get("parameterTypes");
