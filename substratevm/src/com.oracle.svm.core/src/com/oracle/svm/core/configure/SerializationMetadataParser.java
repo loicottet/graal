@@ -65,7 +65,7 @@ final class SerializationMetadataParser<C> extends SerializationConfigurationPar
 
         Object optionalCustomCtorValue = data.get(CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY);
         if (optionalCustomCtorValue != null) {
-            RuntimeReflectionSupport.increaseCount(false);
+            RuntimeReflectionSupport.increaseCount(true);
         }
         registerType(targetSerializationClass.get(), condition.get(), optionalCustomCtorValue);
     }

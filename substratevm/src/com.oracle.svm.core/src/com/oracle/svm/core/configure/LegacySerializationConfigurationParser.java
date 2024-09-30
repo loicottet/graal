@@ -88,7 +88,7 @@ final class LegacySerializationConfigurationParser<C> extends SerializationConfi
         } else {
             checkAttributes(data, "serialization descriptor object", Collections.singleton(NAME_KEY), Arrays.asList(CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY, CONDITIONAL_KEY));
         }
-        RuntimeReflectionSupport.increaseCount(false);
+        RuntimeReflectionSupport.increaseCount(true);
 
         ConfigurationTypeDescriptor targetSerializationClass = new NamedConfigurationTypeDescriptor(asString(data.get(NAME_KEY)));
         UnresolvedConfigurationCondition unresolvedCondition = parseCondition(data, false);
