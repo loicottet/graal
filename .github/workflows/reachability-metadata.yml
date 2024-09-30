@@ -71,7 +71,7 @@ jobs:
     - name: Build GraalVM JDK
       uses: ./.github/actions/build-graalvm
       with:
-        native-images: 'native-image,native-image-configure,lib:native-image-agent'
+        native-images: 'native-image,native-image-configure'
         components: 'Native Image,Native Image Configure Tool'
         java-version: ${{ env.MINIMUM_METADATA_JAVA_VERSION }}
     - name: Tar GraalVM JDK
