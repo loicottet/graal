@@ -98,15 +98,15 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
         delegate.registerPublicConstructors(queryCondition, true, clazz);
         delegate.registerDeclaredMethods(queryCondition, true, clazz);
         delegate.registerPublicMethods(queryCondition, true, clazz);
-        delegate.registerDeclaredFields(queryCondition, true, clazz);
-        delegate.registerPublicFields(queryCondition, true, clazz);
+        delegate.registerDeclaredFields(queryCondition, false, clazz);
+        delegate.registerPublicFields(queryCondition, false, clazz);
 
         registerIfNotDefault(data, false, clazz, "allDeclaredConstructors", () -> delegate.registerDeclaredConstructors(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicConstructors", () -> delegate.registerPublicConstructors(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allDeclaredMethods", () -> delegate.registerDeclaredMethods(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicMethods", () -> delegate.registerPublicMethods(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
+        registerIfNotDefault(data, true, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
+        registerIfNotDefault(data, true, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
 
         MapCursor<String, Object> cursor = data.getEntries();
