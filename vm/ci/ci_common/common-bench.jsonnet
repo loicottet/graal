@@ -59,7 +59,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
     base_cmd:: ['mx', '--env', env, '--dy', 'polybenchmarks'],
   },
 
-  vm_bench_polybenchmarks_linux_build: vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + self.vm_bench_common + vm.vm_java_21 + self.polybench_hpc_linux_common(shape='e4_36_256') + self.vm_bench_polybenchmarks_base(env='polybench-${VM_ENV}') + {
+  vm_bench_polybenchmarks_linux_build: vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + vm.vm_java_21 + self.polybench_hpc_linux_common(shape='e4_36_256') + self.vm_bench_polybenchmarks_base(env='polybench-${VM_ENV}') + {
     setup+: [
       self.base_cmd + ['sforceimports'],
     ],
@@ -77,6 +77,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
       }
     ],
     targets+: ['ondemand'],
+    timelimit: '1:00:00',
   },
 
   vm_bench_polybenchmarks_linux_common(vm_config='jvm', is_gate=false, suite='default:*', shape=null): vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + vm.vm_java_21 + self.polybench_hpc_linux_common(shape=shape) + self.vm_bench_polybenchmarks_base(env='polybench-${VM_ENV}') {
