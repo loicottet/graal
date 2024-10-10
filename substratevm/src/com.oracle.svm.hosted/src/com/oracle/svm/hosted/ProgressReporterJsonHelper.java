@@ -180,6 +180,8 @@ public class ProgressReporterJsonHelper {
         FIELD_REFLECT("fields", "reflection"),
         FOREIGN_DOWNCALLS("methods", "foreign_downcalls"),
         FOREIGN_UPCALLS("methods", "foreign_upcalls"),
+        ALL_CONFIG_ENTRIES("config", "all_entries"),
+        RELEVANT_CONFIG_ENTRIES("config", "relevant_entries"),
 
         // TODO GR-42148: remove deprecated entries in a future release
         DEPRECATED_CLASS_TOTAL("classes", "total"),
