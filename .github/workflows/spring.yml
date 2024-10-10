@@ -79,3 +79,6 @@ jobs:
       run: |
         cd ${{ env.SPRING_PETCLINIC_PATH }}
         ./gradlew nativeTest
+    - name: "Report build stats"
+      run: |
+        cat ${{ env.SPRING_PETCLINIC_PATH }}/build/native/nativeTestCompile/reports/stats.json

@@ -31,6 +31,10 @@ import java.util.Optional;
 
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.MapCursor;
+import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.nativeimage.impl.ConfigurationCondition;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
+import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
 import com.oracle.svm.core.TypeResult;
@@ -57,8 +61,10 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void parseClass(EconomicMap<String, Object> data) {
         checkAttributes(data, "reflection class descriptor object", List.of(TYPE_KEY), OPTIONAL_REFLECT_METADATA_ATTRS);
+        RuntimeReflectionSupport.increaseCount(false);
 
         Optional<ConfigurationTypeDescriptor> type = parseTypeContents(data.get(TYPE_KEY));
         if (type.isEmpty()) {
