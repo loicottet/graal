@@ -31,6 +31,7 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
 import com.oracle.svm.core.TypeResult;
@@ -69,6 +70,7 @@ public abstract class ResourceConfigurationParser<C> extends ConfigurationParser
     private void parseBundle(Object bundle) {
         EconomicMap<String, Object> resource = asMap(bundle, "Elements of 'bundles' list must be a bundle descriptor object");
         checkAttributes(resource, "bundle descriptor object", Collections.singletonList("name"), Arrays.asList("locales", "classNames", "condition"));
+        RuntimeReflectionSupport.increaseCount(false);
         String basename = asString(resource.get("name"));
         TypeResult<C> resolvedConfigurationCondition = conditionResolver.resolveCondition(parseCondition(resource));
         if (!resolvedConfigurationCondition.isPresent()) {
@@ -122,6 +124,7 @@ public abstract class ResourceConfigurationParser<C> extends ConfigurationParser
     private void parseGlobEntry(Object data, GlobPatternConsumer<C> resourceRegistry) {
         EconomicMap<String, Object> globObject = asMap(data, "Elements of 'globs' list must be a glob descriptor objects");
         checkAttributes(globObject, "glob resource descriptor object", Collections.singletonList(GLOB_KEY), List.of(CONDITIONAL_KEY, MODULE_KEY));
+        RuntimeReflectionSupport.increaseCount(false);
         TypeResult<C> resolvedConfigurationCondition = conditionResolver.resolveCondition(parseCondition(globObject));
         if (!resolvedConfigurationCondition.isPresent()) {
             return;

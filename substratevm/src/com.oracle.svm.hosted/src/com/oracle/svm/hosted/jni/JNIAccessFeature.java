@@ -25,6 +25,7 @@
 package com.oracle.svm.hosted.jni;
 
 import static com.oracle.svm.core.configure.ConfigurationParser.JNI_KEY;
+import static com.oracle.svm.core.configure.ConfigurationParser.REFLECTION_KEY;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
@@ -209,6 +210,8 @@ public class JNIAccessFeature implements Feature {
                         ClassInitializationSupport.singleton());
         ReflectionConfigurationParser<ConfigurationCondition, Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, conditionResolver, runtimeSupport, null, access.getImageClassLoader());
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "JNI");
+        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> reflectParser = ConfigurationParserUtils.create(REFLECTION_KEY, true, conditionResolver, runtimeSupport, null, access.getImageClassLoader());
+        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(reflectParser, access.getImageClassLoader(), "Reflection");
         ReflectionConfigurationParser<ConfigurationCondition, Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, conditionResolver, runtimeSupport, null,
                         access.getImageClassLoader());
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "JNI",
