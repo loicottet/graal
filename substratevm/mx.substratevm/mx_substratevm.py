@@ -32,7 +32,7 @@ import tempfile
 from glob import glob
 from contextlib import contextmanager
 from os.path import join, exists, dirname
-import pipes
+import shlex
 from argparse import ArgumentParser
 import fnmatch
 import collections
@@ -585,8 +585,26 @@ def _native_junit(native_image, unittest_args, build_args=None, run_args=None, b
         unittest_image = native_image(['-ea', '-esa'] + build_args + extra_image_args + [macro_junit + '=' + unittest_file] + svm_experimental_options(['-H:Path=' + junit_test_dir]), env=custom_env)
         image_pattern_replacement = unittest_image + ".exe" if mx.is_windows() else unittest_image
         run_args = [arg.replace('${unittest.image}', image_pattern_replacement) for arg in run_args]
+<<<<<<< HEAD
         mx.log('Running: ' + ' '.join(map(pipes.quote, [unittest_image] + run_args)))
         mx.run([unittest_image] + run_args)
+=======
+        mx.log('Running: ' + ' '.join(map(shlex.quote, [unittest_image] + run_args)))
+
+        if not test_classes_per_run:
+            # Run all tests in one go. The default behavior.
+            test_classes_per_run = sys.maxsize
+
+        failures = []
+        for classes in batched(test_classes, test_classes_per_run):
+            ret = mx.run([unittest_image] + run_args + [arg for c in classes for arg in ['--run-explicit', c]], nonZeroIsFatal=False)
+            if ret != 0:
+                failures.append((ret, classes))
+        if len(failures) != 0:
+            fail_descs = (f"> Test run of the following classes failed with exit code {ret}: {', '.join(classes)}" for ret, classes in failures)
+            mx.log('Some test runs failed:\n' + '\n'.join(fail_descs))
+            mx.abort(1)
+>>>>>>> 52d898d8bb6 (Replace pipes.quote with shlex.quote.)
     finally:
         if not preserve_image:
             mx.rmtree(junit_test_dir)
