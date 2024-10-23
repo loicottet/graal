@@ -77,14 +77,11 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
     protected final InvokeKind invokeKind;
     protected final StampPair returnStamp;
 
-<<<<<<< HEAD:compiler/src/org.graalvm.compiler.replacements/src/org/graalvm/compiler/replacements/nodes/MacroWithExceptionNode.java
-=======
     protected ResolvedJavaMethod originalTargetMethod;
     protected StampPair originalReturnStamp;
     @Input NodeInputList<ValueNode> originalArguments;
 
     @SuppressWarnings("this-escape")
->>>>>>> b538877586c (Preserve ResolvedMethodHandleCallTargetNode when creating MacroNodes):compiler/src/jdk.internal.vm.compiler/src/org/graalvm/compiler/replacements/nodes/MacroWithExceptionNode.java
     protected MacroWithExceptionNode(NodeClass<? extends MacroWithExceptionNode> c, MacroParams p) {
         super(c, p.returnStamp != null ? p.returnStamp.getTrustedStamp() : null);
         this.arguments = new NodeInputList<>(this, p.arguments);
