@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
 import com.oracle.svm.core.SubstrateUtil;
@@ -228,6 +229,7 @@ public abstract class ConfigurationParser {
     protected UnresolvedConfigurationCondition parseCondition(EconomicMap<String, Object> data, boolean runtimeCondition) {
         Object conditionData = data.get(CONDITIONAL_KEY);
         if (conditionData != null) {
+            RuntimeReflectionSupport.increaseCount(false);
             EconomicMap<String, Object> conditionObject = asMap(conditionData, "Attribute 'condition' must be an object");
             if (conditionObject.containsKey(TYPE_REACHABLE_KEY) && conditionObject.containsKey(TYPE_REACHED_KEY)) {
                 failOnSchemaError("condition can not have both '" + TYPE_REACHED_KEY + "' and '" + TYPE_REACHABLE_KEY + "' set.");
