@@ -31,6 +31,7 @@ import java.util.function.BiConsumer;
 
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.MapCursor;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
 import com.oracle.svm.core.TypeResult;
@@ -109,6 +110,7 @@ final class LegacyResourceConfigurationParser<C> extends ResourceConfigurationPa
     private void parsePatternEntry(Object data, BiConsumer<C, String> resourceRegistry, GlobPatternConsumer<C> globRegistry, String parentType) {
         EconomicMap<String, Object> resource = asMap(data, "Elements of " + parentType + " must be a resource descriptor object");
         checkAttributes(resource, "regex resource descriptor object", Collections.singletonList("pattern"), Collections.singletonList(CONDITIONAL_KEY));
+        RuntimeReflectionSupport.increaseCount(false);
         TypeResult<C> resolvedConfigurationCondition = conditionResolver.resolveCondition(parseCondition(resource, false));
         if (!resolvedConfigurationCondition.isPresent()) {
             return;

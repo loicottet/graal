@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 
 import com.oracle.svm.core.TypeResult;
 import com.oracle.svm.util.LogUtils;
@@ -46,14 +47,16 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
 
     protected final ConfigurationConditionResolver<C> conditionResolver;
     protected final ReflectionConfigurationParserDelegate<C, T> delegate;
+    protected final String combinedFileKey;
     private final boolean printMissingElements;
 
     public ReflectionConfigurationParser(ConfigurationConditionResolver<C> conditionResolver, ReflectionConfigurationParserDelegate<C, T> delegate, boolean strictConfiguration,
-                    boolean printMissingElements) {
+                                         boolean printMissingElements, String combinedFileKey) {
         super(strictConfiguration);
         this.conditionResolver = conditionResolver;
         this.printMissingElements = printMissingElements;
         this.delegate = delegate;
+        this.combinedFileKey = combinedFileKey;
     }
 
     public static <C, T> ReflectionConfigurationParser<C, T> create(String combinedFileKey, boolean strictMetadata,
@@ -75,6 +78,9 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
     protected abstract void parseClass(EconomicMap<String, Object> data);
 
     protected void registerIfNotDefault(EconomicMap<String, Object> data, boolean defaultValue, T clazz, String propertyName, Runnable register) {
+        if (data.containsKey(propertyName) && delegate.getClass().getName().contains("ReflectionRegistryAdapter")) {
+            RuntimeReflectionSupport.increaseCount(combinedFileKey.equals(REFLECTION_KEY));
+        }
         if (data.containsKey(propertyName) ? asBoolean(data.get(propertyName), propertyName) : defaultValue) {
             try {
                 register.run();
@@ -92,6 +98,9 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
 
     private void parseField(C condition, EconomicMap<String, Object> data, T clazz) {
         checkAttributes(data, "reflection field descriptor object", Collections.singleton("name"), Arrays.asList("allowWrite", "allowUnsafeAccess"));
+        if (delegate.getClass().getName().contains("ReflectionRegistryAdapter")) {
+            RuntimeReflectionSupport.increaseCount(combinedFileKey.equals(REFLECTION_KEY));
+        }
         String fieldName = asString(data.get("name"), "name");
         boolean allowWrite = data.containsKey("allowWrite") && asBoolean(data.get("allowWrite"), "allowWrite");
 
@@ -112,6 +121,9 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
 
     private void parseMethod(C condition, boolean queriedOnly, EconomicMap<String, Object> data, T clazz) {
         checkAttributes(data, "reflection method descriptor object", Collections.singleton("name"), Collections.singleton("parameterTypes"));
+        if (delegate.getClass().getName().contains("ReflectionRegistryAdapter")) {
+            RuntimeReflectionSupport.increaseCount(combinedFileKey.equals(REFLECTION_KEY));
+        }
         String methodName = asString(data.get("name"), "name");
         List<T> methodParameterTypes = null;
         Object parameterTypes = data.get("parameterTypes");
