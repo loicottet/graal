@@ -40,6 +40,8 @@
  */
 package org.graalvm.nativeimage.impl;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public interface RuntimeReflectionSupport extends ReflectionRegistry {
     // needed as reflection-specific ImageSingletons key
     void registerAllMethodsQuery(ConfigurationCondition condition, boolean queriedOnly, Class<?> clazz);
@@ -67,4 +69,19 @@ public interface RuntimeReflectionSupport extends ReflectionRegistry {
     void registerAllSignersQuery(ConfigurationCondition condition, Class<?> clazz);
 
     void registerClassLookupException(ConfigurationCondition condition, String typeName, Throwable t);
+
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicInteger relevantCount = new AtomicInteger(0);
+
+    static void increaseCount(boolean interest) {
+        count.incrementAndGet();
+        if (interest) {
+            relevantCount.incrementAndGet();
+        }
+    }
+
+    static int getCount(boolean interest) {
+        return interest ? relevantCount.get() : count.get();
+    }
+
 }

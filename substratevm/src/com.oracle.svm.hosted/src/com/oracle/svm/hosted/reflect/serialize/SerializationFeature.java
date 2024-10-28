@@ -553,9 +553,11 @@ final class SerializationBuilder extends ConditionalConfigurationRegistry implem
                         return;
                     }
                 }
-                Optional.ofNullable(addConstructorAccessor(cnd, serializationTargetClass, customTargetConstructorClass))
-                                .map(ReflectionUtil::lookupConstructor)
-                                .ifPresent(methods -> ImageSingletons.lookup(RuntimeReflectionSupport.class).register(ConfigurationCondition.alwaysTrue(), false, methods));
+                for (Class<?> superclass = serializationTargetClass.getSuperclass(); superclass != null; superclass = superclass.getSuperclass()) {
+                    Optional.ofNullable(addConstructorAccessor(cnd, serializationTargetClass, superclass))
+                                    .map(ReflectionUtil::lookupConstructor)
+                                    .ifPresent(methods -> ImageSingletons.lookup(RuntimeReflectionSupport.class).register(ConfigurationCondition.alwaysTrue(), false, methods));
+                }
 
                 Class<?> superclass = serializationTargetClass.getSuperclass();
                 if (superclass != null) {
