@@ -97,8 +97,8 @@ final class LegacyReflectionConfigurationParser<C, T> extends ReflectionConfigur
         registerIfNotDefault(data, false, clazz, "allPublicConstructors", () -> delegate.registerPublicConstructors(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allDeclaredMethods", () -> delegate.registerDeclaredMethods(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicMethods", () -> delegate.registerPublicMethods(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
+        registerIfNotDefault(data, true, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
+        registerIfNotDefault(data, true, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
         registerIfNotDefault(data, isType, clazz, "allDeclaredClasses", () -> delegate.registerDeclaredClasses(queryCondition, clazz));
         registerIfNotDefault(data, isType, clazz, "allRecordComponents", () -> delegate.registerRecordComponents(queryCondition, clazz));
         registerIfNotDefault(data, isType, clazz, "allPermittedSubclasses", () -> delegate.registerPermittedSubclasses(queryCondition, clazz));
@@ -114,8 +114,8 @@ final class LegacyReflectionConfigurationParser<C, T> extends ReflectionConfigur
              * Fields cannot be registered as queried only by the user, we register them
              * unconditionally if the class is registered via "type".
              */
-            delegate.registerDeclaredFields(queryCondition, true, clazz);
-            delegate.registerPublicFields(queryCondition, true, clazz);
+            delegate.registerDeclaredFields(queryCondition, false, clazz);
+            delegate.registerPublicFields(queryCondition, false, clazz);
         }
         registerIfNotDefault(data, false, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
         MapCursor<String, Object> cursor = data.getEntries();

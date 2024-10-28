@@ -31,6 +31,7 @@ import java.util.Optional;
 
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.MapCursor;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
 import com.oracle.svm.core.TypeResult;
@@ -59,6 +60,7 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
     @Override
     protected void parseClass(EconomicMap<String, Object> data) {
         checkAttributes(data, "reflection class descriptor object", List.of(TYPE_KEY), OPTIONAL_REFLECT_METADATA_ATTRS);
+        RuntimeReflectionSupport.increaseCount(false);
 
         Optional<ConfigurationTypeDescriptor> type = parseTypeContents(data.get(TYPE_KEY));
         if (type.isEmpty()) {
@@ -96,15 +98,15 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
         delegate.registerPublicConstructors(queryCondition, true, clazz);
         delegate.registerDeclaredMethods(queryCondition, true, clazz);
         delegate.registerPublicMethods(queryCondition, true, clazz);
-        delegate.registerDeclaredFields(queryCondition, true, clazz);
-        delegate.registerPublicFields(queryCondition, true, clazz);
+        delegate.registerDeclaredFields(queryCondition, false, clazz);
+        delegate.registerPublicFields(queryCondition, false, clazz);
 
         registerIfNotDefault(data, false, clazz, "allDeclaredConstructors", () -> delegate.registerDeclaredConstructors(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicConstructors", () -> delegate.registerPublicConstructors(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allDeclaredMethods", () -> delegate.registerDeclaredMethods(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicMethods", () -> delegate.registerPublicMethods(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
+        registerIfNotDefault(data, true, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
+        registerIfNotDefault(data, true, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "unsafeAllocated", () -> delegate.registerUnsafeAllocated(condition, clazz));
 
         MapCursor<String, Object> cursor = data.getEntries();
