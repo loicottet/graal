@@ -95,7 +95,8 @@ final class LegacyReflectionConfigurationParser<C, T> extends ReflectionConfigur
 
         registerIfNotDefault(data, false, clazz, "allDeclaredConstructors", () -> delegate.registerDeclaredConstructors(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicConstructors", () -> delegate.registerPublicConstructors(condition, false, clazz));
-        registerIfNotDefault(data, false, clazz, "allDeclaredMethods", () -> delegate.registerDeclaredMethods(condition, false, clazz));
+        registerIfNotDefault(data, data.containsKey("methods") && !asList(data.get("methods"), "").isEmpty(), clazz, "allDeclaredMethods",
+                () -> delegate.registerDeclaredMethods(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicMethods", () -> delegate.registerPublicMethods(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allDeclaredFields", () -> delegate.registerDeclaredFields(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicFields", () -> delegate.registerPublicFields(condition, false, clazz));

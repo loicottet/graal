@@ -170,8 +170,10 @@ jobs:
         if: startsWith(matrix.os-name, 'ubuntu')
         env:
           TEST_MODULES: ${{matrix.test-modules}}
+          MATRIX_DUMP: ${{ toJson(matrix) }}
         run: |
           cd ${QUARKUS_PATH}
+          echo "$MATRIX_DUMP"
           ${GRAALVM_HOME}/bin/native-image --version
           ./mvnw $COMMON_MAVEN_ARGS -f integration-tests -pl "$TEST_MODULES" $NATIVE_TEST_MAVEN_ARGS
       - name: Prepare failure archive (if maven failed)
@@ -184,3 +186,27 @@ jobs:
         with:
           name: test-reports-native-${{matrix.category}}
           path: 'test-reports.tgz'
+      - name: "Probe stats"
+        run: ls ${QUARKUS_PATH}/integration-tests/*/target/quarkus-integration-test-*-999-SNAPSHOT-native-image-source-jar/reports
+      - name: "Upload stats"
+        id: upload
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ strategy.job-index }}
+          path: ${{ env.QUARKUS_PATH }}/integration-tests/*/target/quarkus-integration-test-*-999-SNAPSHOT-native-image-source-jar/reports/stats.json
+          retention-days: 1
+
+  gather-stats:
+    name: "Gather stats files"
+    runs-on: ubuntu-latest
+    if: success() || failure()
+    needs: [ native-tests ]
+    steps:
+      - name: "Download build stats"
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: "Report build stats"
+        run: |
+          grep . artifacts/*/*/*/*/*/stats.json
