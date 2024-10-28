@@ -3,7 +3,7 @@
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # The Universal Permissive License (UPL), Version 1.0
-#
+#op
 # Subject to the condition set forth below, permission is hereby granted to any
 # person obtaining a copy of this software, associated documentation and/or
 # data (collectively the "Software"), free of charge and under any and all
@@ -71,7 +71,7 @@ jobs:
     - name: Build GraalVM JDK
       uses: ./.github/actions/build-graalvm
       with:
-        native-images: 'native-image,native-image-configure,lib:native-image-agent'
+        native-images: 'native-image'
         components: 'Native Image,Native Image Configure Tool'
         java-version: ${{ env.MINIMUM_METADATA_JAVA_VERSION }}
     - name: Tar GraalVM JDK
@@ -108,7 +108,8 @@ jobs:
       - name: "Checkout oracle/graalvm-reachability-metadata"
         uses: actions/checkout@v4
         with:
-          repository: oracle/graalvm-reachability-metadata
+          repository: loicottet/graalvm-reachability-metadata
+          ref: lottet/update
       - name: Download GraalVM JDK build
         uses: actions/download-artifact@v4
         with:
@@ -134,6 +135,37 @@ jobs:
           sudo systemctl daemon-reload
           sudo systemctl restart docker
       - name: "Run '${{ matrix.coordinates }}' tests"
+        id: run
         run: |
-          ./gradlew test -Pcoordinates=${{ matrix.coordinates }}
-    
+          ./gradlew test -Pcoordinates=${{ matrix.coordinates }} --continue
+      - name: "Transform coordinate"
+        id: coordinate
+        run: |
+          echo ${{ matrix.coordinates }} > coords.txt
+          sed -i "s/:/\//g" coords.txt
+          echo "COORDS=$(cat coords.txt)" > $GITHUB_ENV
+          sed -i "s/\//-/g" coords.txt
+          echo "ESC_COORDS=$(cat coords.txt)" >> $GITHUB_ENV
+      - name: "Upload stats"
+        id: upload
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ESC_COORDS }}
+          path: tests/src/${{ env.COORDS }}/build/native/nativeTestCompile/reports/stats.json
+          retention-days: 1
+
+  gather-stats:
+    name: "Gather stats files"
+    runs-on: ubuntu-latest
+    if: success() || failure()
+    needs: [test-all-metadata]
+    steps:
+      - name: "Download build stats"
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: "Report build stats"
+        run: |
+          grep . artifacts/*/stats.json
+            
