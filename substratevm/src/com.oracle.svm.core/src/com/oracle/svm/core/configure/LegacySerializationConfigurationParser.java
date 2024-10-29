@@ -30,6 +30,8 @@ import java.util.Collections;
 import java.util.List;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.ImageSingletons;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
@@ -86,6 +88,7 @@ final class LegacySerializationConfigurationParser<C> extends SerializationConfi
         } else {
             checkAttributes(data, "serialization descriptor object", Collections.singleton(NAME_KEY), Arrays.asList(CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY, CONDITIONAL_KEY));
         }
+        RuntimeReflectionSupport.increaseCount(true);
 
         ConfigurationTypeDescriptor targetSerializationClass = new NamedConfigurationTypeDescriptor(asString(data.get(NAME_KEY)));
         UnresolvedConfigurationCondition unresolvedCondition = parseCondition(data, false);
@@ -99,6 +102,9 @@ final class LegacySerializationConfigurationParser<C> extends SerializationConfi
             serializationSupport.registerLambdaCapturingClass(condition.get(), className);
         } else {
             Object optionalCustomCtorValue = data.get(CUSTOM_TARGET_CONSTRUCTOR_CLASS_KEY);
+            if (optionalCustomCtorValue != null) {
+                RuntimeReflectionSupport.increaseCount(false);
+            }
             String customTargetConstructorClass = optionalCustomCtorValue != null ? asString(optionalCustomCtorValue) : null;
             if (targetSerializationClass instanceof NamedConfigurationTypeDescriptor namedClass) {
                 serializationSupport.registerWithTargetConstructorClass(condition.get(), namedClass.name(), customTargetConstructorClass);

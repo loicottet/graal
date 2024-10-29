@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.graalvm.collections.EconomicMap;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 
 import com.oracle.svm.core.TypeResult;
 import com.oracle.svm.util.LogUtils;
@@ -75,6 +76,9 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
     protected abstract void parseClass(EconomicMap<String, Object> data);
 
     protected void registerIfNotDefault(EconomicMap<String, Object> data, boolean defaultValue, T clazz, String propertyName, Runnable register) {
+        if (data.containsKey(propertyName)) {
+            RuntimeReflectionSupport.increaseCount(defaultValue);
+        }
         if (data.containsKey(propertyName) ? asBoolean(data.get(propertyName), propertyName) : defaultValue) {
             try {
                 register.run();
@@ -92,6 +96,7 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
 
     private void parseField(C condition, EconomicMap<String, Object> data, T clazz) {
         checkAttributes(data, "reflection field descriptor object", Collections.singleton("name"), Arrays.asList("allowWrite", "allowUnsafeAccess"));
+        RuntimeReflectionSupport.increaseCount(false);
         String fieldName = asString(data.get("name"), "name");
         boolean allowWrite = data.containsKey("allowWrite") && asBoolean(data.get("allowWrite"), "allowWrite");
 
@@ -112,6 +117,7 @@ public abstract class ReflectionConfigurationParser<C, T> extends ConfigurationP
 
     private void parseMethod(C condition, boolean queriedOnly, EconomicMap<String, Object> data, T clazz) {
         checkAttributes(data, "reflection method descriptor object", Collections.singleton("name"), Collections.singleton("parameterTypes"));
+        RuntimeReflectionSupport.increaseCount(false);
         String methodName = asString(data.get("name"), "name");
         List<T> methodParameterTypes = null;
         Object parameterTypes = data.get("parameterTypes");
