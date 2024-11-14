@@ -59,7 +59,7 @@ public class SubstrateClassInitializationPlugin implements ClassInitializationPl
     }
 
     @Override
-    public boolean apply(GraphBuilderContext builder, ResolvedJavaType type, Supplier<FrameState> frameState) {
+    public boolean apply(GraphBuilderContext builder, ResolvedJavaType type, Supplier<FrameState> frameState, ValueNode[] classInit) {
         if (EnsureClassInitializedNode.needsRuntimeInitialization(builder.getMethod().getDeclaringClass(), type)) {
             emitEnsureClassInitialized(builder, SubstrateObjectConstant.forObject(host.dynamicHub(type)), frameState.get());
             return true;

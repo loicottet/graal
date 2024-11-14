@@ -27,6 +27,7 @@ package org.graalvm.compiler.nodes.graphbuilderconf;
 import java.util.function.Supplier;
 
 import org.graalvm.compiler.nodes.FrameState;
+import org.graalvm.compiler.nodes.ValueNode;
 
 import jdk.vm.ci.meta.ConstantPool;
 import jdk.vm.ci.meta.ResolvedJavaType;
@@ -48,9 +49,10 @@ public interface ClassInitializationPlugin extends GraphBuilderPlugin {
      *
      * @param frameState supplier to create a frame state representing the state just prior to
      *            execution of the class initialization barrier
+     * @param classInit if non-null
      * @return {@code true} if this method emitted a barrier,{@code false} if not
      */
-    boolean apply(GraphBuilderContext builder, ResolvedJavaType type, Supplier<FrameState> frameState);
+    boolean apply(GraphBuilderContext builder, ResolvedJavaType type, Supplier<FrameState> frameState, ValueNode[] classInit);
 
     /**
      * Determines if {@code cp} has a variation of {@link ConstantPool#loadReferencedType} that can

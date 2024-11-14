@@ -35,10 +35,12 @@ import org.graalvm.compiler.nodes.FixedNodeInterface;
 import org.graalvm.compiler.nodes.GraphState;
 import org.graalvm.compiler.nodes.Invokable;
 import org.graalvm.compiler.nodes.Invoke;
+import org.graalvm.compiler.nodes.MacroInvokableMarker;
 import org.graalvm.compiler.nodes.StateSplit;
 import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.java.MethodCallTargetNode;
+import org.graalvm.compiler.nodes.java.ResolvedMethodHandleCallTargetNodeMarker;
 import org.graalvm.compiler.nodes.memory.SingleMemoryKill;
 import org.graalvm.compiler.nodes.spi.Lowerable;
 import org.graalvm.compiler.nodes.spi.LoweringTool;
@@ -60,7 +62,7 @@ import jdk.vm.ci.meta.ResolvedJavaMethod;
  * During lowering subclasses may lower the node as appropriate. Otherwise, the macro node is
  * replaced with an {@link Invoke}.
  */
-public interface MacroInvokable extends Invokable, Lowerable, StateSplit, SingleMemoryKill, FixedNodeInterface {
+public interface MacroInvokable extends Invokable, Lowerable, StateSplit, SingleMemoryKill, FixedNodeInterface, MacroInvokableMarker {
 
     CallTargetNode.InvokeKind getInvokeKind();
 
@@ -195,5 +197,6 @@ public interface MacroInvokable extends Invokable, Lowerable, StateSplit, Single
      * Captures the method handle information so that it can be properly lowered back to an
      * {@link Invoke} later.
      */
-    void addMethodHandleInfo(ResolvedMethodHandleCallTargetNode methodHandle);
+    @Override
+    void addMethodHandleInfo(ResolvedMethodHandleCallTargetNodeMarker methodHandle);
 }

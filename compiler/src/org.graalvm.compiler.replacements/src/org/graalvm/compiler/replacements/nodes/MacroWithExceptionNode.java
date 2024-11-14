@@ -45,6 +45,7 @@ import org.graalvm.compiler.nodes.NodeView;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.WithExceptionNode;
 import org.graalvm.compiler.nodes.java.MethodCallTargetNode;
+import org.graalvm.compiler.nodes.java.ResolvedMethodHandleCallTargetNodeMarker;
 import org.graalvm.compiler.replacements.nodes.MacroNode.MacroParams;
 import org.graalvm.word.LocationIdentity;
 
@@ -81,7 +82,6 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
     protected StampPair originalReturnStamp;
     @Input NodeInputList<ValueNode> originalArguments;
 
-    @SuppressWarnings("this-escape")
     protected MacroWithExceptionNode(NodeClass<? extends MacroWithExceptionNode> c, MacroParams p) {
         super(c, p.returnStamp != null ? p.returnStamp.getTrustedStamp() : null);
         this.arguments = new NodeInputList<>(this, p.arguments);
@@ -216,7 +216,8 @@ public abstract class MacroWithExceptionNode extends WithExceptionNode implement
     }
 
     @Override
-    public void addMethodHandleInfo(ResolvedMethodHandleCallTargetNode methodHandle) {
+    public void addMethodHandleInfo(ResolvedMethodHandleCallTargetNodeMarker methodHandleMarker) {
+        ResolvedMethodHandleCallTargetNode methodHandle = (ResolvedMethodHandleCallTargetNode) methodHandleMarker;
         assert originalArguments.size() == 0 && originalReturnStamp == null & originalTargetMethod == null : this;
         originalReturnStamp = methodHandle.originalReturnStamp;
         originalTargetMethod = methodHandle.originalTargetMethod;

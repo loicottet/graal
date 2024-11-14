@@ -46,6 +46,7 @@ import org.graalvm.compiler.nodes.NodeView;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderContext;
 import org.graalvm.compiler.nodes.java.MethodCallTargetNode;
+import org.graalvm.compiler.nodes.java.ResolvedMethodHandleCallTargetNodeMarker;
 import org.graalvm.word.LocationIdentity;
 
 import jdk.vm.ci.meta.JavaKind;
@@ -277,7 +278,8 @@ public abstract class MacroNode extends FixedWithNextNode implements MacroInvoka
     }
 
     @Override
-    public void addMethodHandleInfo(ResolvedMethodHandleCallTargetNode methodHandle) {
+    public void addMethodHandleInfo(ResolvedMethodHandleCallTargetNodeMarker methodHandleMarker) {
+        ResolvedMethodHandleCallTargetNode methodHandle = (ResolvedMethodHandleCallTargetNode) methodHandleMarker;
         assert originalArguments.size() == 0 && originalReturnStamp == null & originalTargetMethod == null : this;
         originalReturnStamp = methodHandle.originalReturnStamp;
         originalTargetMethod = methodHandle.originalTargetMethod;

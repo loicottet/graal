@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import org.graalvm.compiler.nodes.FrameState;
 import org.graalvm.compiler.nodes.graphbuilderconf.ClassInitializationPlugin;
 import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderContext;
+import org.graalvm.compiler.nodes.ValueNode;
 
 import com.oracle.graal.pointsto.constraints.UnresolvedElementException;
 import com.oracle.graal.pointsto.infrastructure.WrappedConstantPool;
@@ -58,7 +59,7 @@ public class NoClassInitializationPlugin implements ClassInitializationPlugin {
     }
 
     @Override
-    public boolean apply(GraphBuilderContext builder, ResolvedJavaType type, Supplier<FrameState> frameState) {
+    public boolean apply(GraphBuilderContext builder, ResolvedJavaType type, Supplier<FrameState> frameState, ValueNode[] classInit) {
         return false;
     }
 }
