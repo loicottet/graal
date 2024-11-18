@@ -170,11 +170,26 @@ public abstract class ImageHeapScanner {
         return data;
     }
 
+<<<<<<< HEAD
     void markTypeInstantiated(AnalysisType type, ScanReason reason) {
         if (universe.sealed() && !type.isReachable()) {
             throw AnalysisError.shouldNotReachHere("Universe is sealed. New type reachable: " + type.toJavaName());
         }
         universe.getBigbang().registerTypeAsInHeap(type, reason);
+=======
+    void markTypeReachable(AnalysisType type, ScanReason reason) {
+        if (universe.sealed() && !type.isReachable()) {
+            throw AnalysisError.typeNotFound(type);
+        }
+        type.registerAsReachable(reason);
+    }
+
+    void markTypeInstantiated(AnalysisType type, ScanReason reason) {
+        if (universe.sealed() && !type.isInstantiated()) {
+            throw AnalysisError.typeNotFound(type);
+        }
+        type.registerAsInstantiated(reason);
+>>>>>>> f642457aa0d (Mark type of hidden field reachable.)
     }
 
     JavaConstant markConstantReachable(JavaConstant constant, ScanReason reason, Consumer<ScanReason> onAnalysisModified) {
@@ -230,12 +245,21 @@ public abstract class ImageHeapScanner {
         return existingTask instanceof ImageHeapConstant ? (ImageHeapConstant) existingTask : ((AnalysisFuture<ImageHeapConstant>) existingTask).ensureDone();
     }
 
+<<<<<<< HEAD
     /**
      * Scan injected heap objects, i.e., heap objects that do not originate from scanning underlying
      * hosted constants.
      */
     protected void scanImageHeapObject(ImageHeapConstant object, ScanReason reason, Consumer<ScanReason> onAnalysisModified) {
         assert object.getJavaKind() == JavaKind.Object && !object.isNull();
+=======
+    private void ensureFieldPositionsComputed(ImageHeapConstant baseLayerConstant, ScanReason reason) {
+        AnalysisType objectType = baseLayerConstant.getType();
+        markTypeReachable(objectType, reason);
+        objectType.getStaticFields();
+        objectType.getInstanceFields(true);
+    }
+>>>>>>> f642457aa0d (Mark type of hidden field reachable.)
 
         /*
          * Access the constant type after the replacement. Some constants may have types that should
@@ -357,6 +381,7 @@ public abstract class ImageHeapScanner {
             }
             markTypeInstantiated(type, reason);
         } else {
+<<<<<<< HEAD
             /*
              * We need to have the new ImageHeapInstance early so that we can reference it in the
              * lambda when the field value gets reachable. But it must not be published to any other
@@ -364,6 +389,57 @@ public abstract class ImageHeapScanner {
              */
             /* We are about to query the type's fields, the type must be marked as reachable. */
             markTypeInstantiated(type, reason);
+=======
+            return createImageHeapInstance(constant, type, reason);
+        }
+    }
+
+    private ImageHeapArray createImageHeapObjectArray(JavaConstant constant, AnalysisType type, int length, ScanReason reason) {
+        ImageHeapObjectArray array = new ImageHeapObjectArray(type, constant, length);
+        /* Read hosted array element values only when the array is initialized. */
+        array.constantData.hostedValuesReader = new AnalysisFuture<>(() -> {
+            checkSealed(reason, "Trying to materialize an ImageHeapObjectArray for %s after the ImageHeapScanner is sealed.", constant);
+            markTypeReachable(type, reason);
+            ScanReason arrayReason = new ArrayScan(type, array, reason);
+            Object[] elementValues = new Object[length];
+            for (int idx = 0; idx < length; idx++) {
+                final JavaConstant rawElementValue = hostedValuesProvider.readArrayElement(constant, idx);
+                int finalIdx = idx;
+                elementValues[idx] = new AnalysisFuture<>(() -> {
+                    JavaConstant arrayElement = createImageHeapConstant(rawElementValue, arrayReason);
+                    array.setElement(finalIdx, arrayElement);
+                    return arrayElement;
+                });
+            }
+            array.setElementValues(elementValues);
+        });
+        return array;
+    }
+
+    public void registerBaseLayerValue(ImageHeapConstant constant, Object reason) {
+        JavaConstant hostedValue = constant.getHostedObject();
+        Object existingSnapshot = imageHeap.getSnapshot(hostedValue);
+        if (existingSnapshot != null) {
+            AnalysisError.guarantee(existingSnapshot == constant || existingSnapshot instanceof AnalysisFuture<?> task && task.ensureDone() == constant,
+                            "Found unexpected snapshot value for base layer value. Reason: %s.", reason);
+        } else {
+            imageHeap.setValue(hostedValue, constant);
+        }
+    }
+
+    private ImageHeapInstance createImageHeapInstance(JavaConstant constant, AnalysisType type, ScanReason reason) {
+        ImageHeapInstance instance = new ImageHeapInstance(type, constant);
+        /* Read hosted field values only when the receiver is initialized. */
+        instance.constantData.hostedValuesReader = new AnalysisFuture<>(() -> {
+            checkSealed(reason, "Trying to materialize an ImageHeapInstance for %s after the ImageHeapScanner is sealed.", constant);
+            /* If this is a Class constant register the corresponding type as reachable. */
+            AnalysisType typeFromClassConstant = (AnalysisType) constantReflection.asJavaType(instance);
+            if (typeFromClassConstant != null) {
+                markTypeReachable(typeFromClassConstant, reason);
+            }
+            /* We are about to query the type's fields, the type must be marked as reachable. */
+            markTypeReachable(type, reason);
+>>>>>>> f642457aa0d (Mark type of hidden field reachable.)
             ResolvedJavaField[] instanceFields = type.getInstanceFields(true);
             newImageHeapConstant = new ImageHeapInstance(type, constant, instanceFields.length);
             for (ResolvedJavaField javaField : instanceFields) {
