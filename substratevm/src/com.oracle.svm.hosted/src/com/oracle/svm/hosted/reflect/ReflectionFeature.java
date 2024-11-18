@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.hosted.reflect;
 
+import static com.oracle.svm.core.configure.ConfigurationParser.JNI_KEY;
 import static com.oracle.svm.core.configure.ConfigurationParser.REFLECTION_KEY;
 
 import java.lang.invoke.MethodHandle;
@@ -281,13 +282,21 @@ public class ReflectionFeature implements InternalFeature, ReflectionSubstitutio
         reflectionData.duringSetup(access.getMetaAccess(), aUniverse);
         ProxyRegistry proxyRegistry = ImageSingletons.lookup(ProxyRegistry.class);
         ReflectionConfigurationParser<ConfigurationCondition, Class<?>> parser = ConfigurationParserUtils.create(REFLECTION_KEY, true, conditionResolver, reflectionData, proxyRegistry,
-                        access.getImageClassLoader());
+                        access.getImageClassLoader(), false);
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "reflection");
+        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> jniParser = ConfigurationParserUtils.create(JNI_KEY, true, conditionResolver, reflectionData, proxyRegistry,
+                access.getImageClassLoader(), false);
+        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(jniParser, access.getImageClassLoader(), "JNI");
         ReflectionConfigurationParser<ConfigurationCondition, Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, conditionResolver, reflectionData, proxyRegistry,
-                        access.getImageClassLoader());
+                        access.getImageClassLoader(), false);
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "reflection",
                         ConfigurationFiles.Options.ReflectionConfigurationFiles, ConfigurationFiles.Options.ReflectionConfigurationResources,
                         ConfigurationFile.REFLECTION.getFileName());
+        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> legacyJNIParser = ConfigurationParserUtils.create(null, false, conditionResolver, reflectionData, proxyRegistry,
+                access.getImageClassLoader(), false);
+        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyJNIParser, access.getImageClassLoader(), "JNI",
+                ConfigurationFiles.Options.JNIConfigurationFiles, ConfigurationFiles.Options.JNIConfigurationResources,
+                ConfigurationFile.JNI.getFileName());
 
         loader = access.getImageClassLoader();
         annotationSubstitutions = ((Inflation) access.getBigBang()).getAnnotationSubstitutionProcessor();

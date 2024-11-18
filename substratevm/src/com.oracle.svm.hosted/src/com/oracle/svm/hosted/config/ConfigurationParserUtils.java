@@ -61,11 +61,11 @@ import jdk.graal.compiler.util.json.JsonParserException;
 public final class ConfigurationParserUtils {
 
     public static ReflectionConfigurationParser<ConfigurationCondition, Class<?>> create(String combinedFileKey, boolean strictMetadata,
-                    ConfigurationConditionResolver<ConfigurationCondition> conditionResolver, ReflectionRegistry registry, ProxyRegistry proxyRegistry, ImageClassLoader imageClassLoader) {
+                    ConfigurationConditionResolver<ConfigurationCondition> conditionResolver, ReflectionRegistry registry, ProxyRegistry proxyRegistry, ImageClassLoader imageClassLoader, boolean typeOnly) {
         return ReflectionConfigurationParser.create(combinedFileKey, strictMetadata, conditionResolver,
                         RegistryAdapter.create(registry, proxyRegistry, imageClassLoader),
                         ConfigurationFiles.Options.StrictConfiguration.getValue(),
-                        ConfigurationFiles.Options.WarnAboutMissingReflectionOrJNIMetadataElements.getValue(), TreatAllNameEntriesAsType.getValue());
+                        ConfigurationFiles.Options.WarnAboutMissingReflectionOrJNIMetadataElements.getValue(), TreatAllNameEntriesAsType.getValue(), typeOnly);
     }
 
     /**

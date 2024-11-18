@@ -44,11 +44,13 @@ final class LegacyReflectionConfigurationParser<C, T> extends ReflectionConfigur
                     "queryAllDeclaredConstructors", "queryAllPublicConstructors", "queryAllDeclaredMethods", "queryAllPublicMethods", "unsafeAllocated");
 
     private final boolean treatAllNameEntriesAsType;
+    private final boolean typeOnly;
 
     LegacyReflectionConfigurationParser(ConfigurationConditionResolver<C> conditionResolver, ReflectionConfigurationParserDelegate<C, T> delegate, boolean strictConfiguration,
-                    boolean printMissingElements, boolean treatAllNameEntriesAsType) {
-        super(conditionResolver, delegate, strictConfiguration, printMissingElements);
+                    boolean printMissingElements, boolean treatAllNameEntriesAsType, boolean typeOnly) {
+        super(conditionResolver, delegate, strictConfiguration, printMissingElements, "");
         this.treatAllNameEntriesAsType = treatAllNameEntriesAsType;
+        this.typeOnly = typeOnly;
     }
 
     @Override
@@ -92,6 +94,10 @@ final class LegacyReflectionConfigurationParser<C, T> extends ReflectionConfigur
         C queryCondition = isType ? conditionResolver.alwaysTrue() : condition;
         T clazz = result.get();
         delegate.registerType(conditionResult.get(), clazz);
+
+        if (typeOnly) {
+            return;
+        }
 
         registerIfNotDefault(data, false, clazz, "allDeclaredConstructors", () -> delegate.registerDeclaredConstructors(condition, false, clazz));
         registerIfNotDefault(data, false, clazz, "allPublicConstructors", () -> delegate.registerPublicConstructors(condition, false, clazz));
