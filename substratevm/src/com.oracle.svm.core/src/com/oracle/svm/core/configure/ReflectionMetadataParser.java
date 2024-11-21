@@ -31,6 +31,7 @@ import java.util.Optional;
 
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.collections.MapCursor;
+import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.UnresolvedConfigurationCondition;
 
 import com.oracle.svm.core.TypeResult;
@@ -40,12 +41,12 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
                     "allDeclaredConstructors", "allPublicConstructors", "allDeclaredMethods", "allPublicMethods", "allDeclaredFields", "allPublicFields",
                     "methods", "fields", "unsafeAllocated");
 
-    private final String combinedFileKey;
+    private boolean typeOnly;
 
     ReflectionMetadataParser(String combinedFileKey, ConfigurationConditionResolver<C> conditionResolver, ReflectionConfigurationParserDelegate<C, T> delegate, boolean strictConfiguration,
-                    boolean printMissingElements) {
-        super(conditionResolver, delegate, strictConfiguration, printMissingElements);
-        this.combinedFileKey = combinedFileKey;
+                    boolean printMissingElements, boolean typeOnly) {
+        super(conditionResolver, delegate, strictConfiguration, printMissingElements, combinedFileKey);
+        this.typeOnly = typeOnly;
     }
 
     @Override
@@ -59,6 +60,9 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
     @Override
     protected void parseClass(EconomicMap<String, Object> data) {
         checkAttributes(data, "reflection class descriptor object", List.of(TYPE_KEY), OPTIONAL_REFLECT_METADATA_ATTRS);
+        if (delegate.getClass().getName().contains("ReflectionRegistryAdapter")) {
+            RuntimeReflectionSupport.increaseCount(combinedFileKey.equals(REFLECTION_KEY));
+        }
 
         Optional<ConfigurationTypeDescriptor> type = parseTypeContents(data.get(TYPE_KEY));
         if (type.isEmpty()) {
@@ -85,6 +89,10 @@ class ReflectionMetadataParser<C, T> extends ReflectionConfigurationParser<C, T>
         C queryCondition = conditionResolver.alwaysTrue();
         T clazz = result.get();
         delegate.registerType(conditionResult.get(), clazz);
+
+        if (typeOnly) {
+            return;
+        }
 
         delegate.registerDeclaredClasses(queryCondition, clazz);
         delegate.registerRecordComponents(queryCondition, clazz);

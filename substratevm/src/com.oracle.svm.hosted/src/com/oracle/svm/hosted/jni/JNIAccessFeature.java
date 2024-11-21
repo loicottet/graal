@@ -25,6 +25,7 @@
 package com.oracle.svm.hosted.jni;
 
 import static com.oracle.svm.core.configure.ConfigurationParser.JNI_KEY;
+import static com.oracle.svm.core.configure.ConfigurationParser.REFLECTION_KEY;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
@@ -207,12 +208,18 @@ public class JNIAccessFeature implements Feature {
 
         ConfigurationConditionResolver<ConfigurationCondition> conditionResolver = new NativeImageConditionResolver(access.getImageClassLoader(),
                         ClassInitializationSupport.singleton());
-        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, conditionResolver, runtimeSupport, null, access.getImageClassLoader());
+        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> parser = ConfigurationParserUtils.create(JNI_KEY, true, conditionResolver, runtimeSupport, null, access.getImageClassLoader(), false);
         loadedConfigurations = ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(parser, access.getImageClassLoader(), "JNI");
+//        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> reflectParser = ConfigurationParserUtils.create(REFLECTION_KEY, true, conditionResolver, runtimeSupport, null, access.getImageClassLoader(), true);
+//        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurationsFromCombinedFile(reflectParser, access.getImageClassLoader(), "Reflection");
         ReflectionConfigurationParser<ConfigurationCondition, Class<?>> legacyParser = ConfigurationParserUtils.create(null, false, conditionResolver, runtimeSupport, null,
-                        access.getImageClassLoader());
+                        access.getImageClassLoader(), false);
         loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyParser, access.getImageClassLoader(), "JNI",
                         ConfigurationFiles.Options.JNIConfigurationFiles, ConfigurationFiles.Options.JNIConfigurationResources, ConfigurationFile.JNI.getFileName());
+//        ReflectionConfigurationParser<ConfigurationCondition, Class<?>> legacyRefectionParser = ConfigurationParserUtils.create(null, false, conditionResolver, runtimeSupport, null,
+//                access.getImageClassLoader(), true);
+//        loadedConfigurations += ConfigurationParserUtils.parseAndRegisterConfigurations(legacyRefectionParser, access.getImageClassLoader(), "Reflection",
+//                ConfigurationFiles.Options.ReflectionConfigurationFiles, ConfigurationFiles.Options.ReflectionConfigurationResources, ConfigurationFile.REFLECTION.getFileName());
     }
 
     private class JNIRuntimeAccessibilitySupportImpl extends ConditionalConfigurationRegistry
