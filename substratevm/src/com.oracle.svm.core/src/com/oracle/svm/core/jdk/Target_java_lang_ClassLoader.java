@@ -28,11 +28,11 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
@@ -72,7 +72,7 @@ public final class Target_java_lang_ClassLoader {
      * invoked by the VM to record every loaded class with this loader".
      */
     @Alias @RecomputeFieldValue(kind = Kind.Reset)//
-    private Vector<Class<?>> classes;
+    private ArrayList<Class<?>> classes;
 
     @Alias @RecomputeFieldValue(kind = Kind.NewInstanceWhenNotNull, declClass = ConcurrentHashMap.class)//
     private ConcurrentHashMap<String, Object> parallelLockMap;
