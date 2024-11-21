@@ -42,6 +42,7 @@ import com.oracle.svm.core.option.HostedOptionKey;
 import com.oracle.svm.core.option.LocatableMultiOptionValue;
 import com.oracle.svm.core.option.SubstrateOptionsParser;
 import com.oracle.svm.core.util.UserError;
+import com.oracle.svm.util.LogUtils;
 
 public final class VMInspectionOptions {
     private static final String ENABLE_MONITORING_OPTION = "enable-monitoring";
@@ -55,6 +56,7 @@ public final class VMInspectionOptions {
     private static final String MONITORING_ALLOWED_VALUES = "`" + MONITORING_HEAPDUMP_NAME + "`, `" + MONITORING_JFR_NAME + "`, `" + MONITORING_JVMSTAT_NAME + "`, `" + MONITORING_JMXSERVER_NAME +
                     "` (experimental), `" + MONITORING_JMXCLIENT_NAME + "` (experimental), or `" + MONITORING_ALL_NAME +
                     "` (deprecated behavior: defaults to `" + MONITORING_ALL_NAME + "` if no argument is provided)";
+    private static final List<String> NOT_SUPPORTED_ON_WINDOWS = List.of(MONITORING_HEAPDUMP_NAME, MONITORING_JFR_NAME, MONITORING_JVMSTAT_NAME, MONITORING_JMXCLIENT_NAME, MONITORING_JMXSERVER_NAME);
 
     @APIOption(name = ENABLE_MONITORING_OPTION, defaultValue = MONITORING_DEFAULT_NAME) //
     @Option(help = "Enable monitoring features that allow the VM to be inspected at run time. Comma-separated list can contain " + MONITORING_ALLOWED_VALUES + ". " +
@@ -66,16 +68,26 @@ public final class VMInspectionOptions {
     public static void validateEnableMonitoringFeatures(@SuppressWarnings("unused") OptionKey<?> optionKey) {
         Set<String> enabledFeatures = getEnabledMonitoringFeatures();
         if (enabledFeatures.contains(MONITORING_DEFAULT_NAME)) {
-            System.out.printf(
-                            "Warning: `%s` without an argument is deprecated. Please always explicitly specify the list of monitoring features to be enabled (for example, `%s`).%n",
+            String warning = String.format("'%s' without an argument is deprecated. Please always explicitly specify the list of monitoring features to be enabled (for example, '%s').",
                             getDefaultMonitoringCommandArgument(),
                             SubstrateOptionsParser.commandArgument(EnableMonitoringFeatures, String.join(",", List.of(MONITORING_HEAPDUMP_NAME, MONITORING_JFR_NAME))));
+            LogUtils.warning(warning);
         }
         enabledFeatures.removeAll(List.of(MONITORING_HEAPDUMP_NAME, MONITORING_JFR_NAME, MONITORING_JVMSTAT_NAME, MONITORING_JMXCLIENT_NAME, MONITORING_JMXSERVER_NAME, MONITORING_ALL_NAME,
                         MONITORING_DEFAULT_NAME));
         if (!enabledFeatures.isEmpty()) {
             throw UserError.abort("The `%s` option contains invalid value(s): %s. It can only contain %s.", getDefaultMonitoringCommandArgument(), String.join(", ", enabledFeatures),
                             MONITORING_ALLOWED_VALUES);
+        }
+
+        if (Platform.includedIn(WINDOWS.class)) {
+            Set<String> notSupported = getEnabledMonitoringFeatures();
+            notSupported.retainAll(NOT_SUPPORTED_ON_WINDOWS);
+            if (!notSupported.isEmpty()) {
+                String warning = String.format("the option '%s' contains value(s) that are not supported on Windows: %s. Those values will be ignored.", getDefaultMonitoringCommandArgument(),
+                                String.join(", ", notSupported));
+                LogUtils.warning(warning);
+            }
         }
     }
 
