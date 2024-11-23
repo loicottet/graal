@@ -46,6 +46,7 @@ import org.graalvm.compiler.nodes.NodeView;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.graphbuilderconf.GraphBuilderContext;
 import org.graalvm.compiler.nodes.java.MethodCallTargetNode;
+import org.graalvm.compiler.nodes.java.ResolvedMethodHandleCallTargetNodeMarker;
 import org.graalvm.word.LocationIdentity;
 
 import jdk.vm.ci.meta.JavaKind;
@@ -71,6 +72,24 @@ public abstract class MacroNode extends FixedWithNextNode implements MacroInvoka
     protected final ResolvedJavaMethod targetMethod;
     protected final InvokeKind invokeKind;
     protected final StampPair returnStamp;
+
+    /**
+     * The original target method for a MethodHandle invoke call site. See
+     * {@link ResolvedMethodHandleCallTargetNode}.
+     */
+    protected ResolvedJavaMethod originalTargetMethod;
+
+    /**
+     * The original return stamp for a MethodHandle invoke call site. See
+     * {@link ResolvedMethodHandleCallTargetNode}.
+     */
+    protected StampPair originalReturnStamp;
+
+    /**
+     * The original arguments for a MethodHandle invoke call site. See
+     * {@link ResolvedMethodHandleCallTargetNode}.
+     */
+    @Input NodeInputList<ValueNode> originalArguments;
 
     /**
      * Encapsulates the parameters for constructing a {@link MacroNode} that are the same for all
@@ -127,6 +146,7 @@ public abstract class MacroNode extends FixedWithNextNode implements MacroInvoka
         this.invokeKind = p.invokeKind;
         assert !isPlaceholderBci(p.bci);
         assert MacroInvokable.assertArgumentCount(this);
+        this.originalArguments = new NodeInputList<>(this);
     }
 
     @Override
@@ -167,6 +187,26 @@ public abstract class MacroNode extends FixedWithNextNode implements MacroInvoka
     @Override
     public InvokeKind getInvokeKind() {
         return invokeKind;
+    }
+
+    @Override
+    public StampPair getReturnStamp() {
+        return returnStamp;
+    }
+
+    @Override
+    public NodeInputList<ValueNode> getOriginalArguments() {
+        return originalArguments;
+    }
+
+    @Override
+    public ResolvedJavaMethod getOriginalTargetMethod() {
+        return originalTargetMethod;
+    }
+
+    @Override
+    public StampPair getOriginalReturnStamp() {
+        return originalReturnStamp;
     }
 
     @Override
@@ -223,7 +263,7 @@ public abstract class MacroNode extends FixedWithNextNode implements MacroInvoka
      * because this would leave the graph in an inconsistent state.
      */
     protected InvokeNode createInvoke(boolean verifyStamp) {
-        MethodCallTargetNode callTarget = graph().add(new MethodCallTargetNode(invokeKind, targetMethod, getArguments().toArray(ValueNode.EMPTY_ARRAY), returnStamp, null));
+        MethodCallTargetNode callTarget = createCallTarget();
         InvokeNode invoke = graph().add(new InvokeNode(callTarget, bci, getLocationIdentity()));
         if (stateAfter() != null) {
             invoke.setStateAfter(stateAfter().duplicate());
@@ -235,5 +275,14 @@ public abstract class MacroNode extends FixedWithNextNode implements MacroInvoka
             verifyStamp();
         }
         return invoke;
+    }
+
+    @Override
+    public void addMethodHandleInfo(ResolvedMethodHandleCallTargetNodeMarker methodHandleMarker) {
+        ResolvedMethodHandleCallTargetNode methodHandle = (ResolvedMethodHandleCallTargetNode) methodHandleMarker;
+        assert originalArguments.size() == 0 && originalReturnStamp == null & originalTargetMethod == null : this;
+        originalReturnStamp = methodHandle.originalReturnStamp;
+        originalTargetMethod = methodHandle.originalTargetMethod;
+        originalArguments.addAll(methodHandle.originalArguments);
     }
 }

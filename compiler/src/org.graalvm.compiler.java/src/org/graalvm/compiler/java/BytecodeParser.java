@@ -343,6 +343,7 @@ import org.graalvm.compiler.nodes.LogicNode;
 import org.graalvm.compiler.nodes.LoopBeginNode;
 import org.graalvm.compiler.nodes.LoopEndNode;
 import org.graalvm.compiler.nodes.LoopExitNode;
+import org.graalvm.compiler.nodes.MacroInvokableMarker;
 import org.graalvm.compiler.nodes.MergeNode;
 import org.graalvm.compiler.nodes.NodeView;
 import org.graalvm.compiler.nodes.ParameterNode;
@@ -1660,16 +1661,18 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 handleUnresolvedInvoke(target, InvokeKind.Static);
                 return;
             }
-
             ValueNode[] classInit = {null};
             if (classInitializationPlugin != null) {
                 classInitializationPlugin.apply(this, resolvedTarget.getDeclaringClass(), this::createCurrentFrameState, classInit);
             }
 
             ValueNode[] args = frameState.popArguments(resolvedTarget.getSignature().getParameterCount(false));
-            Invoke invoke = appendInvoke(InvokeKind.Static, resolvedTarget, args, null);
-            if (invoke != null && classInit[0] != null) {
-                invoke.setClassInit(classInit[0]);
+            Invokable invokable = appendInvoke(InvokeKind.Static, resolvedTarget, args, null);
+            if (invokable instanceof Invoke) {
+                Invoke invoke = (Invoke) invokable;
+                if (invoke != null && classInit[0] != null) {
+                    invoke.setClassInit(classInit[0]);
+                }
             }
         } else {
             handleUnresolvedInvoke(target, InvokeKind.Static);
@@ -1692,10 +1695,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
     protected void genInvokeInterface(JavaType referencedType, JavaMethod target) {
         if (callTargetIsResolved(target) && (referencedType == null || referencedType instanceof ResolvedJavaType)) {
             ValueNode[] args = frameState.popArguments(target.getSignature().getParameterCount(true));
-            Invoke invoke = appendInvoke(InvokeKind.Interface, (ResolvedJavaMethod) target, args, (ResolvedJavaType) referencedType);
-            if (invoke != null) {
-                invoke.callTarget().setReferencedType((ResolvedJavaType) referencedType);
-            }
+            appendInvoke(InvokeKind.Interface, (ResolvedJavaMethod) target, args, (ResolvedJavaType) referencedType);
         } else {
             handleUnresolvedInvoke(target, InvokeKind.Interface);
         }
@@ -1818,12 +1818,12 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
     private boolean forceInliningEverything;
 
     @Override
-    public Invoke handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything) {
+    public Invokable handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything) {
         GraalError.guarantee(invokeKind != InvokeKind.Interface, "Interface invoke needs a referencedType");
         return handleReplacedInvoke(invokeKind, targetMethod, args, inlineEverything, null);
     }
 
-    public Invoke handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything, ResolvedJavaType referencedType) {
+    public Invokable handleReplacedInvoke(InvokeKind invokeKind, ResolvedJavaMethod targetMethod, ValueNode[] args, boolean inlineEverything, ResolvedJavaType referencedType) {
         boolean previous = forceInliningEverything;
         forceInliningEverything = previous || inlineEverything;
         try {
@@ -1842,7 +1842,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         createNonInlinedInvoke(exceptionEdgeAction, bci(), callTarget, resultType);
     }
 
-    protected Invoke appendInvoke(InvokeKind initialInvokeKind, ResolvedJavaMethod initialTargetMethod, ValueNode[] args, ResolvedJavaType referencedType) {
+    protected Invokable appendInvoke(InvokeKind initialInvokeKind, ResolvedJavaMethod initialTargetMethod, ValueNode[] args, ResolvedJavaType referencedType) {
         if (!parsingIntrinsic() && DeoptALot.getValue(options)) {
             append(new DeoptimizeNode(DeoptimizationAction.None, RuntimeConstraint));
             JavaKind resultType = initialTargetMethod.getSignature().getReturnKind();
@@ -1879,6 +1879,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         InlineInfo inlineInfo = null;
         try {
             currentInvoke = new CurrentInvoke(args, invokeKind, returnType);
+            Mark pluginMark = graph.getMark();
             if (tryNodePluginForInvocation(args, targetMethod)) {
                 if (TraceParserPlugins.getValue(options)) {
                     traceWithContext("used node plugin for %s", targetMethod.format("%h.%n(%p)"));
@@ -1895,6 +1896,9 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 if (tryInvocationPlugin(invokeKind, args, targetMethod, resultType)) {
                     if (TraceParserPlugins.getValue(options)) {
                         traceWithContext("used invocation plugin for %s", targetMethod.format("%h.%n(%p)"));
+                    }
+                    if (lastInstr instanceof MacroInvokableMarker && graph.isNew(pluginMark, lastInstr)) {
+                        return (MacroInvokableMarker) lastInstr;
                     }
                     return null;
                 }
@@ -1953,6 +1957,9 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
             // normal invoke handling.
             invoke.setInlineControl(Invoke.InlineControl.BytecodesOnly);
         }
+        if (referencedType != null) {
+            invoke.callTarget().setReferencedType(referencedType);
+        }
         return invoke;
     }
 
@@ -1960,7 +1967,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
      * Checks that the class of the receiver of an {@link Bytecodes#INVOKEINTERFACE} invocation of a
      * private method is assignable to the interface that declared the method. If not, then
      * deoptimize so that the interpreter can throw an {@link IllegalAccessError}.
-     *
+     * <p>
      * This is a check not performed by the verifier and so must be performed at runtime.
      *
      * @param declaringClass interface declaring the callee
@@ -1975,7 +1982,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
      * Checks that the class of the receiver of an {@link Bytecodes#INVOKESPECIAL} in a method
      * declared in an interface (i.e., a default method) is assignable to the interface. If not,
      * then deoptimize so that the interpreter can throw an {@link IllegalAccessError}.
-     *
+     * <p>
      * This is a check not performed by the verifier and so must be performed at runtime.
      *
      * @param args arguments to an {@link Bytecodes#INVOKESPECIAL} implementing a direct call to a
@@ -2509,7 +2516,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
      * <pre>
      * {SPACE * n} {name of method being parsed} "(" {file name} ":" {line number} ")"
      * </pre>
-     *
+     * <p>
      * where {@code n} is the current inlining depth.
      *
      * @param format a format string
@@ -4532,7 +4539,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         }
 
         if (classInitializationPlugin != null) {
-            classInitializationPlugin.apply(this, resolvedType, this::createCurrentFrameState);
+            classInitializationPlugin.apply(this, resolvedType, this::createCurrentFrameState, null);
         }
 
         for (NodePlugin plugin : graphBuilderConfig.getPlugins().getNodePlugins()) {
@@ -4604,7 +4611,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
 
         ClassInitializationPlugin classInitializationPlugin = this.graphBuilderConfig.getPlugins().getClassInitializationPlugin();
         if (classInitializationPlugin != null) {
-            classInitializationPlugin.apply(this, resolvedType.getArrayClass(), this::createCurrentFrameState);
+            classInitializationPlugin.apply(this, resolvedType.getArrayClass(), this::createCurrentFrameState, null);
         }
 
         ValueNode length = maybeEmitExplicitNegativeArraySizeCheck(frameState.pop(JavaKind.Int));
@@ -4636,7 +4643,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
 
         ClassInitializationPlugin classInitializationPlugin = this.graphBuilderConfig.getPlugins().getClassInitializationPlugin();
         if (classInitializationPlugin != null) {
-            classInitializationPlugin.apply(this, resolvedType, this::createCurrentFrameState);
+            classInitializationPlugin.apply(this, resolvedType, this::createCurrentFrameState, null);
         }
 
         for (int i = rank - 1; i >= 0; i--) {
@@ -4816,7 +4823,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
         ResolvedJavaType holder = resolvedField.getDeclaringClass();
         ClassInitializationPlugin classInitializationPlugin = this.graphBuilderConfig.getPlugins().getClassInitializationPlugin();
         if (classInitializationPlugin != null) {
-            classInitializationPlugin.apply(this, holder, this::createCurrentFrameState);
+            classInitializationPlugin.apply(this, holder, this::createCurrentFrameState, null);
         }
 
         for (NodePlugin plugin : graphBuilderConfig.getPlugins().getNodePlugins()) {
@@ -4896,7 +4903,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
                 assert stackSizeBefore == fs.stackSize();
                 return fs;
             };
-            classInitializationPlugin.apply(this, holder, stateBefore);
+            classInitializationPlugin.apply(this, holder, stateBefore, null);
         }
 
         for (NodePlugin plugin : graphBuilderConfig.getPlugins().getNodePlugins()) {

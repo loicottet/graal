@@ -62,13 +62,6 @@ public class SubstrateClassInitializationPlugin implements ClassInitializationPl
     public boolean apply(GraphBuilderContext builder, ResolvedJavaType type, Supplier<FrameState> frameState, ValueNode[] classInit) {
         if (EnsureClassInitializedNode.needsRuntimeInitialization(builder.getMethod().getDeclaringClass(), type)) {
             emitEnsureClassInitialized(builder, SubstrateObjectConstant.forObject(host.dynamicHub(type)), frameState.get());
-            /*
-             * The classInit value is only registered with Invoke nodes. Since we do not need that,
-             * we ensure it is null.
-             */
-            if (classInit != null) {
-                classInit[0] = null;
-            }
             return true;
         }
         return false;
