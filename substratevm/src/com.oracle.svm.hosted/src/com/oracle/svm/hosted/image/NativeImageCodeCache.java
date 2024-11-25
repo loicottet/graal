@@ -43,7 +43,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
@@ -252,25 +251,8 @@ public abstract class NativeImageCodeCache {
     public void buildRuntimeMetadata(ForkJoinPool threadPool, CFunctionPointer firstMethod, UnsignedWord codeSize) {
         // Build run-time metadata.
         HostedFrameInfoCustomization frameInfoCustomization = new HostedFrameInfoCustomization();
-<<<<<<< HEAD
         CodeInfoEncoder.Encoders encoders = new CodeInfoEncoder.Encoders();
         CodeInfoEncoder codeInfoEncoder = new CodeInfoEncoder(frameInfoCustomization, encoders);
-=======
-        CodeInfoEncoder.Encoders encoders = new CodeInfoEncoder.Encoders(true, clazz -> {
-            if (clazz != null) {
-                Optional<HostedType> hostedType = imageHeap.hMetaAccess.optionalLookupJavaType(clazz);
-                if (hostedType.isPresent()) {
-                    boolean reachable = hostedType.get().getWrapped().isReachable();
-                    VMError.guarantee(reachable, "Type added to the runtime metadata was seen by the analysis, but not marked as reachable: %s", clazz);
-                } else {
-                    throw VMError.shouldNotReachHere("Type added to the runtime metadata without being seen by the analysis: %s", clazz);
-                }
-            }
-        });
-        HostedConstantAccess hostedConstantAccess = new HostedConstantAccess(snippetReflection);
-        CodeInfoEncoder codeInfoEncoder = new CodeInfoEncoder(frameInfoCustomization, encoders, hostedConstantAccess);
-        DeadlockWatchdog watchdog = ImageSingletons.lookup(DeadlockWatchdog.class);
->>>>>>> f642457aa0d (Mark type of hidden field reachable.)
         for (Pair<HostedMethod, CompilationResult> pair : getOrderedCompilations()) {
             encodeMethod(codeInfoEncoder, pair);
         }

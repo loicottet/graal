@@ -510,18 +510,10 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
         try {
             ResolvedJavaField[] subClassFields = field.isStatic() ? subtype.getStaticFields() : subtype.getInstanceFields(false);
             for (ResolvedJavaField javaField : subClassFields) {
-<<<<<<< HEAD
                 AnalysisField subclassField = (AnalysisField) javaField;
                 if (subclassField.getName().equals(field.getName())) {
                     hidingFields.add(subclassField);
-=======
-                for (AnalysisField registeredField : superclassFields) {
-                    AnalysisField subclassField = (AnalysisField) javaField;
-                    if (subclassField.getName().equals(registeredField.getName())) {
-                        hidingFields.add(subclassField);
-                        subclassField.getType().registerAsReachable("Is the declared type of a hiding Field used by reflection");
-                    }
->>>>>>> f642457aa0d (Mark type of hidden field reachable.)
+                    subclassField.getType().registerAsReachable("Is the declared type of a hiding Filed used by reflection");
                 }
             }
         } catch (UnsupportedFeatureException | LinkageError e) {
