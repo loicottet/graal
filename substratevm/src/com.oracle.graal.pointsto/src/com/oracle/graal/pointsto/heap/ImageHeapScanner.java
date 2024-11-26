@@ -112,7 +112,7 @@ public abstract class ImageHeapScanner {
         if (isNonNullObjectConstant(root)) {
             AnalysisType type = metaAccess.lookupJavaType(root);
             EmbeddedRootScan reason = new EmbeddedRootScan(position, root);
-            type.registerAsReachable(reason);
+            markTypeReachable(type, reason);
             getOrCreateConstantReachableTask(root, reason, null);
         }
     }
@@ -178,9 +178,6 @@ public abstract class ImageHeapScanner {
     }
 
     void markTypeInstantiated(AnalysisType type, ScanReason reason) {
-        if (universe.sealed() && !type.isReachable()) {
-            throw AnalysisError.shouldNotReachHere("Universe is sealed. New type reachable: " + type.toJavaName());
-        }
         if (universe.sealed() && !type.isInstantiated()) {
             throw AnalysisError.typeNotFound(type);
         }
