@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,6 +50,7 @@ import org.graalvm.compiler.core.common.type.StampFactory;
 import org.graalvm.compiler.debug.CounterKey;
 import org.graalvm.compiler.debug.DebugCloseable;
 import org.graalvm.compiler.debug.DebugContext;
+import org.graalvm.compiler.graph.Graph;
 import org.graalvm.compiler.graph.Node;
 import org.graalvm.compiler.graph.NodeMap;
 import org.graalvm.compiler.graph.NodeStack;
@@ -108,6 +109,7 @@ import org.graalvm.compiler.phases.common.ConditionalEliminationUtil.InfoElement
 import org.graalvm.compiler.phases.common.ConditionalEliminationUtil.InfoElementProvider;
 import org.graalvm.compiler.phases.common.ConditionalEliminationUtil.InputFilter;
 import org.graalvm.compiler.phases.common.ConditionalEliminationUtil.Marks;
+import org.graalvm.compiler.phases.common.util.EconomicSetNodeEventListener;
 import org.graalvm.compiler.phases.common.util.LoopUtility;
 import org.graalvm.compiler.phases.schedule.SchedulePhase;
 import org.graalvm.compiler.phases.schedule.SchedulePhase.SchedulingStrategy;
@@ -197,10 +199,21 @@ public class ConditionalEliminationPhase extends BasePhase<CoreProviders> {
                      * See comment in {@link MoveGuardsUpwards#enter}.
                      */
                     final boolean deferLoopExits = false;
-                    cfg.visitDominatorTree(new MoveGuardsUpwards(cfg), deferLoopExits);
+                    final EconomicSetNodeEventListener listener = new EconomicSetNodeEventListener();
+                    try (Graph.NodeEventScope scope = graph.trackNodeEvents(listener)) {
+                        cfg.visitDominatorTree(new MoveGuardsUpwards(cfg), deferLoopExits);
+                    }
+                    if (!listener.getNodes().isEmpty()) {
+                        /* The graph was changed, the CFG is out of date. */
+                        cfg = null;
+                    }
                 }
                 try (DebugContext.Scope scheduleScope = graph.getDebug().scope(SchedulePhase.class)) {
                     SchedulePhase.run(graph, SchedulingStrategy.EARLIEST_WITH_GUARD_ORDER, cfg, context, false);
+                    if (cfg == null) {
+                        cfg = graph.getLastSchedule().getCFG();
+                        cfg.computePostdominators();
+                    }
                 } catch (Throwable t) {
                     throw graph.getDebug().handle(t);
                 }
