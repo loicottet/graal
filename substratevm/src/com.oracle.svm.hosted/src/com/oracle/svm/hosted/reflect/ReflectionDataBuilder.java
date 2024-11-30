@@ -528,6 +528,7 @@ public class ReflectionDataBuilder extends ConditionalConfigurationRegistry impl
                 AnalysisField subclassField = (AnalysisField) javaField;
                 if (subclassField.getName().equals(field.getName())) {
                     hidingFields.add(subclassField);
+                    subclassField.getType().registerAsReachable("Is the declared type of a hiding Filed used by reflection");
                 }
             }
         } catch (UnsupportedFeatureException | LinkageError e) {
