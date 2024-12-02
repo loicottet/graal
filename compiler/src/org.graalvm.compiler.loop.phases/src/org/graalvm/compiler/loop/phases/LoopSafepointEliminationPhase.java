@@ -136,7 +136,7 @@ public class LoopSafepointEliminationPhase extends BasePhase<MidTierContext> {
          * {@code call2} dominate the backedges. We can remove safepoint polls from both of them
          * because the call will be a guaranteed safepoint.
          */
-        private int disableSafepointsByBodyNodes(Loop loop, ControlFlowGraph cfg) {
+        private int disableSafepointsByBodyNodes(LoopEx loop, ControlFlowGraph cfg) {
             int loopEndSafepointsDisabled = 0;
             for (LoopEndNode loopEnd : loop.loopBegin().loopEnds()) {
                 HIRBlock b = cfg.blockFor(loopEnd);
@@ -221,7 +221,7 @@ public class LoopSafepointEliminationPhase extends BasePhase<MidTierContext> {
          * To be implemented by subclasses to compute additional fields.
          */
         @SuppressWarnings("unused")
-        protected void onSafepointDisabledLoopBegin(Loop loop) {
+        protected void onSafepointDisabledLoopBegin(LoopEx loop) {
         }
 
         /**
@@ -229,7 +229,7 @@ public class LoopSafepointEliminationPhase extends BasePhase<MidTierContext> {
          * able to remove safepoints from the loop ends of the given loop yet. However, the
          * optimizer may believe this loop is short running enough to remove safepoints.
          */
-        private boolean optimizeSafepointsForCountedLoop(Loop loop) {
+        private boolean optimizeSafepointsForCountedLoop(LoopEx loop) {
             if (loop.isCounted()) {
                 if (loop.loop().getChildren().isEmpty() &&
                                 (loop.loopBegin().isPreLoop() || loop.loopBegin().isPostLoop() || loopIsIn32BitRange(loop) ||
@@ -273,7 +273,7 @@ public class LoopSafepointEliminationPhase extends BasePhase<MidTierContext> {
             return false;
         }
 
-        public boolean loopIsIn32BitRange(Loop loop) {
+        public boolean loopIsIn32BitRange(LoopEx loop) {
             return iterationRangeIsIn32Bit(loop);
         }
 
