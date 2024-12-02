@@ -646,8 +646,6 @@ public final class LoopBeginNode extends AbstractMergeNode implements IterableNo
             checkDisableCountedBySpeculation(x.bci, graph());
         }
     }
-<<<<<<< HEAD:compiler/src/org.graalvm.compiler.nodes/src/org/graalvm/compiler/nodes/LoopBeginNode.java
-=======
 
     public void removeSafepoints() {
         this.graph().getDebug().dump(DebugContext.VERY_DETAILED_LEVEL, this.graph(), "Before removing safepoints at %s", this);
@@ -664,6 +662,4 @@ public final class LoopBeginNode extends AbstractMergeNode implements IterableNo
 
         this.graph().getDebug().dump(DebugContext.VERY_DETAILED_LEVEL, this.graph(), "After removing safepoints at %s", this);
     }
-
->>>>>>> c0405ac1a58 (safepoint elimination: refactorings):compiler/src/jdk.graal.compiler/src/jdk/graal/compiler/nodes/LoopBeginNode.java
 }
