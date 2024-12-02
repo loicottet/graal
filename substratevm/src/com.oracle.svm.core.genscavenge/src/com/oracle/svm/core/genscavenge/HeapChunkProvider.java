@@ -57,6 +57,10 @@ import com.oracle.svm.core.util.UnsignedUtils;
  * list. Memory for unaligned chunks is released immediately.
  */
 final class HeapChunkProvider {
+    /** These {@link OutOfMemoryError}s are only needed for legacy code, see GR-59639. */
+    private static final OutOfMemoryError ALIGNED_OUT_OF_MEMORY_ERROR = new OutOfMemoryError("Could not allocate an aligned heap chunk");
+    private static final OutOfMemoryError UNALIGNED_OUT_OF_MEMORY_ERROR = new OutOfMemoryError("Could not allocate an unaligned heap chunk");
+
     /**
      * The head of the linked list of unused aligned chunks. Chunks are chained using
      * {@link HeapChunk#getNext}.
@@ -93,10 +97,6 @@ final class HeapChunkProvider {
     private static Log log() {
         return Log.noopLog();
     }
-
-    private static final OutOfMemoryError ALIGNED_OUT_OF_MEMORY_ERROR = new OutOfMemoryError("Could not allocate an aligned heap chunk");
-
-    private static final OutOfMemoryError UNALIGNED_OUT_OF_MEMORY_ERROR = new OutOfMemoryError("Could not allocate an unaligned heap chunk");
 
     /** Acquire a new AlignedHeapChunk, either from the free list or from the operating system. */
     AlignedHeader produceAlignedChunk() {
