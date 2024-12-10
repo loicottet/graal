@@ -3513,6 +3513,7 @@ public class BytecodeParser extends CoreProvidersDelegate implements GraphBuilde
             if (disableLoopSafepoint()) {
                 loopBegin.disableSafepoint(SafepointState.MUST_NEVER_SAFEPOINT);
                 loopBegin.disableGuestSafepoint(SafepointState.MUST_NEVER_SAFEPOINT);
+                loopBegin.disableLoopExitSafepoint(SafepointState.MUST_NEVER_SAFEPOINT);
             }
             fixedWithNext.setNext(preLoopEnd);
             // Add the single non-loop predecessor of the loop header.
