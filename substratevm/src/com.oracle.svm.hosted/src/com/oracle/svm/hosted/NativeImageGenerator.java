@@ -538,6 +538,7 @@ public class NativeImageGenerator {
             ImageSingletonsSupportImpl.HostedManagement.install(new ImageSingletonsSupportImpl.HostedManagement());
 
             ImageSingletons.add(ProgressReporter.class, reporter);
+            ImageSingletons.add(DeadlockWatchdog.class, loader.watchdog);
             ImageSingletons.add(TimerCollection.class, timerCollection);
             ImageSingletons.add(ImageBuildStatistics.TimerCollectionPrinter.class, timerCollection);
             ImageSingletons.add(AnnotationExtractor.class, loader.classLoaderSupport.annotationExtractor);
