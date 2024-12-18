@@ -204,10 +204,12 @@ public class LinuxImageHeapProvider extends AbstractImageHeapProvider {
             return CEntryPointErrors.NO_ERROR;
         }
 
-        Pointer heapBase = reserveHeapBase(reservedAddressSpace, reservedSize, alignment);
-        if (heapBase.rawValue() < 0) {
-            return (int) heapBase.rawValue(); // value is a negated error code
+        WordPointer heapBaseOut = StackValue.get(WordPointer.class);
+        int result = reserveHeapBase(reservedAddressSpace, reservedSize, alignment, heapBaseOut);
+        if (result != CEntryPointErrors.NO_ERROR) {
+            return result;
         }
+        Pointer heapBase = heapBaseOut.read();
         Pointer allocatedMemory = reservedAddressSpace.isNull() ? heapBase : WordFactory.nullPointer();
         Pointer imageHeap = heapBase.add(imageHeapOffsetInAddressSpace);
 
@@ -219,7 +221,7 @@ public class LinuxImageHeapProvider extends AbstractImageHeapProvider {
             return CEntryPointErrors.MAP_HEAP_FAILED;
         }
 
-        int result = copyRelocations(imageHeap, pageSize, heapBeginSym, heapRelocsSym, heapAnyRelocPointer, heapRelocsEndSym, WordFactory.nullPointer());
+        result = copyRelocations(imageHeap, pageSize, heapBeginSym, heapRelocsSym, heapAnyRelocPointer, heapRelocsEndSym, WordFactory.nullPointer());
         if (result != CEntryPointErrors.NO_ERROR) {
             freeImageHeap(allocatedMemory);
             return result;
@@ -240,7 +242,7 @@ public class LinuxImageHeapProvider extends AbstractImageHeapProvider {
     }
 
     @Uninterruptible(reason = "Called during isolate initialization.")
-    private Pointer reserveHeapBase(Pointer reservedAddressSpace, UnsignedWord reservedSize, UnsignedWord alignment) {
+    private int reserveHeapBase(Pointer reservedAddressSpace, UnsignedWord reservedSize, UnsignedWord alignment, WordPointer heapBaseOut) {
         boolean haveDynamicMethodResolution = DynamicMethodAddressResolutionHeapSupport.isEnabled();
         UnsignedWord preHeapRequiredBytes = WordFactory.zero();
         if (haveDynamicMethodResolution) {
@@ -256,11 +258,11 @@ public class LinuxImageHeapProvider extends AbstractImageHeapProvider {
         if (reservedAddressSpace.isNull()) {
             heapBase = allocatedMemory = VirtualMemoryProvider.get().reserve(totalAddressSpaceSize, alignment, false);
             if (allocatedMemory.isNull()) {
-                return WordFactory.pointer(-CEntryPointErrors.RESERVE_ADDRESS_SPACE_FAILED);
+                return CEntryPointErrors.RESERVE_ADDRESS_SPACE_FAILED;
             }
         } else {
             if (reservedSize.belowThan(totalAddressSpaceSize)) {
-                return WordFactory.pointer(-CEntryPointErrors.INSUFFICIENT_ADDRESS_SPACE);
+                return CEntryPointErrors.INSUFFICIENT_ADDRESS_SPACE;
             }
             heapBase = reservedAddressSpace;
         }
@@ -275,11 +277,12 @@ public class LinuxImageHeapProvider extends AbstractImageHeapProvider {
 
             if (error != CEntryPointErrors.NO_ERROR) {
                 freeImageHeap(allocatedMemory);
-                return WordFactory.pointer(-error);
+                return error;
             }
         }
 
-        return heapBase;
+        heapBaseOut.write(heapBase);
+        return CEntryPointErrors.NO_ERROR;
     }
 
     @Uninterruptible(reason = "Called during isolate initialization.")
@@ -345,10 +348,12 @@ public class LinuxImageHeapProvider extends AbstractImageHeapProvider {
         }
 
         UnsignedWord alignment = WordFactory.unsigned(Heap.getHeap().getPreferredAddressSpaceAlignment());
-        Pointer heapBase = reserveHeapBase(reservedAddressSpace, reservedSize, alignment);
-        if (heapBase.rawValue() < 0) {
-            return (int) heapBase.rawValue(); // value is a negated error code
+        WordPointer heapBaseOut = StackValue.get(WordPointer.class);
+        int result = reserveHeapBase(reservedAddressSpace, reservedSize, alignment, heapBaseOut);
+        if (result != CEntryPointErrors.NO_ERROR) {
+            return result;
         }
+        Pointer heapBase = heapBaseOut.read();
 
         Pointer allocatedMemory = reservedAddressSpace.isNull() ? heapBase : WordFactory.nullPointer();
         int imageHeapOffsetInAddressSpace = Heap.getHeap().getImageHeapOffsetInAddressSpace();
@@ -362,7 +367,7 @@ public class LinuxImageHeapProvider extends AbstractImageHeapProvider {
             return CEntryPointErrors.MAP_HEAP_FAILED;
         }
 
-        int result = copyRelocations(imageHeap, pageSize, heapBeginSym, heapRelocsSym, heapAnyRelocPointer, heapRelocsEndSym, cachedImageHeapRelocations);
+        result = copyRelocations(imageHeap, pageSize, heapBeginSym, heapRelocsSym, heapAnyRelocPointer, heapRelocsEndSym, cachedImageHeapRelocations);
         if (result != CEntryPointErrors.NO_ERROR) {
             freeImageHeap(allocatedMemory);
             return result;
