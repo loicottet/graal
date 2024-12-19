@@ -378,36 +378,36 @@ final class Target_java_lang_System {
 
     @Substitute
     private static Properties getProperties() {
-        return SystemPropertiesSupport.singleton().getProperties();
+        return SystemPropertiesSupport.singleton().getCurrentProperties();
     }
 
     @Substitute
     private static void setProperties(Properties props) {
-        SystemPropertiesSupport.singleton().setProperties(props);
+        SystemPropertiesSupport.singleton().setCurrentProperties(props);
     }
 
     @Substitute
     public static String setProperty(String key, String value) {
         checkKey(key);
-        return SystemPropertiesSupport.singleton().setProperty(key, value);
+        return SystemPropertiesSupport.singleton().setCurrentProperty(key, value);
     }
 
     @Substitute
     private static String getProperty(String key) {
         checkKey(key);
-        return SystemPropertiesSupport.singleton().getProperty(key);
+        return SystemPropertiesSupport.singleton().getCurrentProperty(key);
     }
 
     @Substitute
     public static String clearProperty(String key) {
         checkKey(key);
-        return SystemPropertiesSupport.singleton().clearProperty(key);
+        return SystemPropertiesSupport.singleton().clearCurrentProperty(key);
     }
 
     @Substitute
     private static String getProperty(String key, String def) {
-        String result = getProperty(key);
-        return result != null ? result : def;
+        checkKey(key);
+        return SystemPropertiesSupport.singleton().getCurrentProperty(key, def);
     }
 
     @Alias
