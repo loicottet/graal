@@ -1043,4 +1043,11 @@ public class SubstrateOptions {
 
     @Option(help = "Force using legacy method handle intrinsics.", type = Expert) //
     public static final HostedOptionKey<Boolean> UseOldMethodHandleIntrinsics = new HostedOptionKey<>(false);
+
+    @Option(help = "Enable fallback to mremap for initializing the image heap.")//
+    public static final HostedOptionKey<Boolean> MremapImageHeap = new HostedOptionKey<>(true, key -> {
+        if (!Platform.includedIn(Platform.LINUX.class)) {
+            throw UserError.invalidOptionValue(key, key.getValue(), "Mapping the image heap with mremap() is only supported on Linux.");
+        }
+    });
 }

@@ -26,6 +26,8 @@ package com.oracle.svm.core.util;
 
 import java.util.Collections;
 
+import com.oracle.svm.core.option.SubstrateOptionsParser;
+import org.graalvm.compiler.options.OptionKey;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
@@ -124,5 +126,31 @@ public class UserError {
      */
     public static UserException abort(Iterable<String> messages) {
         throw new UserException(messages);
+    }
+
+    /**
+     * Stop compilation immediately and report the invalid use of an option to the user.
+     *
+     * @param option the option incorrectly used.
+     * @param value the value passed to the option, possibly invalid.
+     * @param reason the reason why the option-value pair is rejected that can be understood by the
+     *            user.
+     */
+    public static UserException invalidOptionValue(OptionKey<?> option, String value, String reason) {
+        return abort("Invalid option '%s'. %s.", SubstrateOptionsParser.commandArgument(option, value), reason);
+    }
+
+    /**
+     * @see #invalidOptionValue(OptionKey, String, String)
+     */
+    public static UserException invalidOptionValue(OptionKey<?> option, Boolean value, String reason) {
+        return invalidOptionValue(option, value ? "+" : "-", reason);
+    }
+
+    /**
+     * @see #invalidOptionValue(OptionKey, String, String)
+     */
+    public static UserException invalidOptionValue(OptionKey<?> option, Number value, String reason) {
+        return invalidOptionValue(option, String.valueOf(value), reason);
     }
 }
