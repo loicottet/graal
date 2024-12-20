@@ -24,8 +24,6 @@
  */
 package org.graalvm.compiler.lir.amd64;
 
-import static jdk.graal.compiler.lir.amd64.AMD64LIRHelper.pointerConstant;
-import static jdk.graal.compiler.lir.amd64.AMD64LIRHelper.recordExternalAddress;
 import static jdk.vm.ci.amd64.AMD64.xmm0;
 import static jdk.vm.ci.amd64.AMD64.xmm1;
 import static jdk.vm.ci.amd64.AMD64.xmm10;
