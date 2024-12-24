@@ -286,7 +286,7 @@ final class ObjectSizeCalculator {
         }
     }
 
-    private static void increaseByArraySize(CalculationState calculationState, ArrayMemoryLayout layout, int length) {
+    private static void increaseByArraySize(CalculationState calculationState, ArrayMemoryLayout layout, long length) {
         increaseSize(calculationState, roundToObjectAlignment(layout.baseOffset + length * layout.indexScale, getObjectAlignment()));
     }
 
