@@ -584,11 +584,13 @@ public final class JSRegexLexer extends RegexLexer {
 
     @Override
     protected Token parseCustomGroupBeginQ(char charAfterQuestionMark) {
-        if (RegexFlags.isValidFlagChar(charAfterQuestionMark) || charAfterQuestionMark == '-') {
-            return parseFlagModifier(charAfterQuestionMark);
-        } else {
-            return null;
-        }
+        // [Backport fixup] Feature: inline flags.
+        // if (RegexFlags.isValidFlagChar(charAfterQuestionMark) || charAfterQuestionMark == '-') {
+        // return parseFlagModifier(charAfterQuestionMark);
+        // } else {
+        // return null;
+        // }
+        return null;
     }
 
     private RegexFlags parseLocalFlags(char firstChar) {
@@ -607,6 +609,8 @@ public final class JSRegexLexer extends RegexLexer {
         return flags;
     }
 
+    // [Backport fixup] Feature: inline flags.
+    @SuppressWarnings("unused")
     private Token parseFlagModifier(char charAfterQuestionMark) {
         RegexFlags addFlags = parseLocalFlags(charAfterQuestionMark);
         char ch = prevChar();
