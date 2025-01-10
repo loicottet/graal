@@ -161,7 +161,7 @@ local devkits = graal_common.devkits;
   vm_linux_aarch64: self.common_vm_linux + graal_common.linux_aarch64,
 
   vm_darwin_amd64: self.common_vm_darwin + graal_common.darwin_amd64 + {
-    capabilities+: ['darwin_bigsur', 'ram16gb'],
+    capabilities+: ['ram16gb'],
     packages+: {
       gcc: '==4.9.2',
     },
@@ -172,7 +172,6 @@ local devkits = graal_common.devkits;
   },
 
   vm_darwin_aarch64: self.common_vm_darwin + graal_common.darwin_aarch64 + {
-    capabilities+: ['darwin_bigsur'],
     environment+: {
       # for compatibility with macOS BigSur
       MACOSX_DEPLOYMENT_TARGET: '11.0',
