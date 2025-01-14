@@ -199,7 +199,7 @@ public class ConditionalConfigurationComputer {
          * method that "caused" them. Register them as unconditional.
          */
         MethodCallNode rootCallNode = methodCallNodes.remove(null).getFirst();
-        addConfigurationWithCondition(configurationSet, rootCallNode.configuration, UnresolvedConfigurationCondition.alwaysTrue());
+        addConfigurationWithCondition(configurationSet, rootCallNode.configuration, ConfigurationCondition.alwaysTrue());
 
         /*
          * For other configuration entries, use the associated method's class as the "cause".

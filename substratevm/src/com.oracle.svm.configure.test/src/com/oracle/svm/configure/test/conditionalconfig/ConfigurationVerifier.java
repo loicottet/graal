@@ -36,7 +36,6 @@ import org.junit.Test;
 
 import com.oracle.svm.configure.config.ConfigurationFileCollection;
 import com.oracle.svm.configure.config.ConfigurationSet;
-import com.oracle.svm.configure.test.AddExports;
 import com.oracle.svm.core.util.json.JsonWriter;
 import com.oracle.svm.core.configure.ConfigurationFile;
 import com.oracle.svm.core.util.VMError;
@@ -45,7 +44,6 @@ import com.oracle.svm.core.util.VMError;
  * Test that validates the configuration metadata produced by the agent. This test is invoked
  * manually from mx.
  */
-@AddExports({"org.graalvm.nativeimage/org.graalvm.nativeimage.impl", "org.graalvm.compiler/org.graalvm.compiler.util"})
 public class ConfigurationVerifier {
 
     public static final String CONFIG_PATH_PROPERTY = ConfigurationVerifier.class.getName() + ".configpath";
