@@ -51,7 +51,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isAnalysisFinished() {
-        return singleton().analysisFinished;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().analysisFinished;
     }
 
     public static void markHostedUniverseBuilt() {
@@ -59,14 +59,87 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isHostedUniverseBuilt() {
-        return singleton().hostedUniverseBuilt;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().hostedUniverseBuilt;
     }
 
+<<<<<<< HEAD
+=======
+    public static void markReadyForCompilation() {
+        singleton().readyForCompilation = true;
+    }
+
+    public static boolean isReadyForCompilation() {
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().readyForCompilation;
+    }
+
+    public static void markCompileQueueFinished() {
+        singleton().compileQueueFinished = true;
+    }
+
+    public static boolean isCompileQueueFinished() {
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().compileQueueFinished;
+    }
+
+>>>>>>> 7c61cfc1fe5 (Fix BuildPhaseProvider.is*Finished() so that these methods can be used at any time during the image build.)
     public static void markCompilationFinished() {
         singleton().compilationFinished = true;
     }
 
     public static boolean isCompilationFinished() {
-        return singleton().compilationFinished;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().compilationFinished;
     }
+<<<<<<< HEAD
+=======
+
+    public static void markHeapLayoutFinished() {
+        singleton().heapLayoutFinished = true;
+    }
+
+    public static boolean isHeapLayoutFinished() {
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().heapLayoutFinished;
+    }
+
+    public static class AfterAnalysis implements BooleanSupplier {
+        @Override
+        public boolean getAsBoolean() {
+            return BuildPhaseProvider.isAnalysisFinished();
+        }
+    }
+
+    public static class AfterHostedUniverse implements BooleanSupplier {
+        @Override
+        public boolean getAsBoolean() {
+            return BuildPhaseProvider.isHostedUniverseBuilt();
+        }
+    }
+
+    public static class ReadyForCompilation implements BooleanSupplier {
+        @Override
+        public boolean getAsBoolean() {
+            return BuildPhaseProvider.isReadyForCompilation();
+        }
+    }
+
+    public static class CompileQueueFinished implements BooleanSupplier {
+        @Override
+        public boolean getAsBoolean() {
+            return BuildPhaseProvider.isCompileQueueFinished();
+        }
+    }
+
+    public static class AfterCompilation implements BooleanSupplier {
+        @Override
+        public boolean getAsBoolean() {
+            return BuildPhaseProvider.isCompilationFinished();
+        }
+    }
+
+    public static class AfterHeapLayout implements BooleanSupplier {
+        @Override
+        public boolean getAsBoolean() {
+            return BuildPhaseProvider.isHeapLayoutFinished();
+        }
+    }
+
+>>>>>>> 7c61cfc1fe5 (Fix BuildPhaseProvider.is*Finished() so that these methods can be used at any time during the image build.)
 }
