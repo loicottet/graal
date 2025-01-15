@@ -55,7 +55,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isAnalysisFinished() {
-        return singleton().analysisFinished;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().analysisFinished;
     }
 
     public static void markHostedUniverseBuilt() {
@@ -63,7 +63,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isHostedUniverseBuilt() {
-        return singleton().hostedUniverseBuilt;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().hostedUniverseBuilt;
     }
 
     public static void markReadyForCompilation() {
@@ -71,7 +71,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isReadyForCompilation() {
-        return singleton().readyForCompilation;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().readyForCompilation;
     }
 
     public static void markCompilationFinished() {
@@ -79,7 +79,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isCompilationFinished() {
-        return singleton().compilationFinished;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().compilationFinished;
     }
 
     public static void markHeapLayoutFinished() {
@@ -87,7 +87,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isHeapLayoutFinished() {
-        return singleton().heapLayoutFinished;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().heapLayoutFinished;
     }
 
     public static class AfterAnalysis implements BooleanSupplier {
