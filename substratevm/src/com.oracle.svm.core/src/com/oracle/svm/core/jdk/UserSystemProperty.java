@@ -28,20 +28,4 @@ public class UserSystemProperty {
     public static final String NAME = "user.name";
     public static final String HOME = "user.home";
     public static final String DIR = "user.dir";
-    public static final String LANGUAGE = "user.language";
-    public static final String LANGUAGE_DISPLAY = "user.language.display";
-    public static final String LANGUAGE_FORMAT = "user.language.format";
-    public static final String SCRIPT = "user.script";
-    public static final String SCRIPT_DISPLAY = "user.script.display";
-    public static final String SCRIPT_FORMAT = "user.script.format";
-    public static final String COUNTRY = "user.country";
-    public static final String COUNTRY_DISPLAY = "user.country.display";
-    public static final String COUNTRY_FORMAT = "user.country.format";
-    public static final String VARIANT = "user.variant";
-    public static final String VARIANT_DISPLAY = "user.variant.display";
-    public static final String VARIANT_FORMAT = "user.variant.format";
-    public static final String EXTENSIONS = "user.extensions";
-    public static final String EXTENSIONS_DISPLAY = "user.extensions.display";
-    public static final String EXTENSIONS_FORMAT = "user.extensions.format";
-    public static final String REGION = "user.region";
 }
