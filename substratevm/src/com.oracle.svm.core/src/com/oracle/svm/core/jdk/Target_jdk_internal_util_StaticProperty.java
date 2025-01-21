@@ -89,8 +89,7 @@ final class Target_jdk_internal_util_StaticProperty {
 
     /*
      * This static constructor is executed at run-time. Be careful that it only initializes lazy
-     * system properties that are reasonably cheap to initialize (e.g., everything related to
-     * locale).
+     * system properties that are reasonably cheap to initialize.
      */
     static {
         if (!SubstrateUtil.HOSTED) {
