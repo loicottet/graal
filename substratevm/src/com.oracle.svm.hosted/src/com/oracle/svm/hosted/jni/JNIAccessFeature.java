@@ -408,11 +408,7 @@ public class JNIAccessFeature implements Feature {
         }
         return JNIReflectionDictionary.currentLayer().addClassIfAbsent(classObj, c -> {
             AnalysisType analysisClass = access.getMetaAccess().lookupJavaType(classObj);
-            if (analysisClass.isInterface() || (analysisClass.isInstanceClass() && analysisClass.isAbstract())) {
-                analysisClass.registerAsReachable("is accessed via JNI");
-            } else {
-                analysisClass.registerAsInstantiated("is accessed via JNI");
-            }
+            analysisClass.registerAsReachable("is accessed via JNI");
             return new JNIAccessibleClass(classObj);
         });
     }
