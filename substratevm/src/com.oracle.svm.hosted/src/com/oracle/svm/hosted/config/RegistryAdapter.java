@@ -70,6 +70,9 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Co
     @Override
     public void registerType(ConfigurationCondition condition, Class<?> type) {
         registry.register(condition, type);
+        if (!(registry instanceof RuntimeReflectionSupport)) {
+            ImageSingletons.lookup(RuntimeReflectionSupport.class).register(condition, type);
+        }
     }
 
     @Override
@@ -175,21 +178,33 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Co
     @Override
     public void registerPublicMethods(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
         registry.register(condition, queriedOnly, type.getMethods());
+        if (!queriedOnly && !(registry instanceof RuntimeReflectionSupport)) {
+            ImageSingletons.lookup(RuntimeReflectionSupport.class).register(condition, false, type.getMethods());
+        }
     }
 
     @Override
     public void registerDeclaredMethods(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
         registry.register(condition, queriedOnly, type.getDeclaredMethods());
+        if (!queriedOnly && !(registry instanceof RuntimeReflectionSupport)) {
+            ImageSingletons.lookup(RuntimeReflectionSupport.class).register(condition, false, type.getDeclaredMethods());
+        }
     }
 
     @Override
     public void registerPublicConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
         registry.register(condition, queriedOnly, type.getConstructors());
+        if (!queriedOnly && !(registry instanceof RuntimeReflectionSupport)) {
+            ImageSingletons.lookup(RuntimeReflectionSupport.class).register(condition, false, type.getConstructors());
+        }
     }
 
     @Override
     public void registerDeclaredConstructors(ConfigurationCondition condition, boolean queriedOnly, Class<?> type) {
         registry.register(condition, queriedOnly, type.getDeclaredConstructors());
+        if (!queriedOnly && !(registry instanceof RuntimeReflectionSupport)) {
+            ImageSingletons.lookup(RuntimeReflectionSupport.class).register(condition, false, type.getDeclaredConstructors());
+        }
     }
 
     @Override
@@ -289,6 +304,9 @@ public class RegistryAdapter implements ReflectionConfigurationParserDelegate<Co
 
     private void registerExecutable(ConfigurationCondition condition, boolean queriedOnly, Executable... executable) {
         registry.register(condition, queriedOnly, executable);
+        if (!queriedOnly && !(registry instanceof RuntimeReflectionSupport)) {
+            ImageSingletons.lookup(RuntimeReflectionSupport.class).register(condition, false, executable);
+        }
     }
 
     @Override
