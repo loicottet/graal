@@ -27,7 +27,9 @@ package com.oracle.svm.hosted.config;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 
+import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.impl.ConfigurationCondition;
+import org.graalvm.nativeimage.impl.RuntimeJNIAccessSupport;
 import org.graalvm.nativeimage.impl.RuntimeReflectionSupport;
 import org.graalvm.nativeimage.impl.RuntimeSerializationSupport;
 
@@ -57,6 +59,7 @@ public class ReflectionRegistryAdapter extends RegistryAdapter {
         if (Proxy.isProxyClass(type)) {
             proxyRegistry.accept(condition, Arrays.stream(type.getInterfaces()).map(Class::getTypeName).toList());
         }
+        ImageSingletons.lookup(RuntimeJNIAccessSupport.class).register(condition, type);
     }
 
     @Override
