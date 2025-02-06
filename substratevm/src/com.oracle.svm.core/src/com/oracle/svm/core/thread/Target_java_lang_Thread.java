@@ -39,6 +39,7 @@ import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.impl.InternalPlatform;
 
+import com.oracle.svm.core.SubstrateControlFlowIntegrity;
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.Uninterruptible;
@@ -669,14 +670,16 @@ public final class Target_java_lang_Thread {
     @Substitute
     @TargetElement(name = "ofVirtual", onlyWith = {JDK19OrLater.class, NotLoomJDK.class})
     public static Target_java_lang_Thread_Builder ofVirtualWithoutLoom() {
-        if (Target_jdk_internal_misc_PreviewFeatures.isEnabled()) {
-            if (DeoptimizationSupport.enabled()) {
-                throw new UnsupportedOperationException("Virtual threads are not supported together with Truffle JIT compilation.");
-            }
-            if (SubstrateOptions.useLLVMBackend()) {
-                throw new UnsupportedOperationException("Virtual threads are not supported together with the LLVM backend.");
-            }
-        } else {
+        if (DeoptimizationSupport.enabled()) {
+            throw new UnsupportedOperationException("Virtual threads are not supported together with Truffle JIT compilation.");
+        }
+        if (SubstrateOptions.useLLVMBackend()) {
+            throw new UnsupportedOperationException("Virtual threads are not supported together with the LLVM backend.");
+        }
+        if (!SubstrateControlFlowIntegrity.singleton().continuationsSupported()) {
+            throw new UnsupportedOperationException("Virtual threads are not supported together with the active control flow integrity implementation.");
+        }
+        if (JavaVersionUtil.JAVA_SPEC < 21) {
             Target_jdk_internal_misc_PreviewFeatures.ensureEnabled(); // throws
         }
         throw VMError.shouldNotReachHereSubstitution();
@@ -861,9 +864,6 @@ interface Target_sun_nio_ch_Interruptible {
 
 @TargetClass(className = "jdk.internal.misc.PreviewFeatures", onlyWith = JDK19OrLater.class)
 final class Target_jdk_internal_misc_PreviewFeatures {
-    @Alias
-    static native boolean isEnabled();
-
     @Alias
     static native void ensureEnabled();
 }
