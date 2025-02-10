@@ -35,6 +35,7 @@ import org.graalvm.compiler.core.CompilationWatchDog;
 import org.graalvm.compiler.core.GraalCompiler;
 import org.graalvm.compiler.core.common.CompilationIdentifier;
 import org.graalvm.compiler.core.common.util.CompilationAlarm;
+import org.graalvm.compiler.debug.Assertions;
 import org.graalvm.compiler.debug.DebugContext;
 import org.graalvm.compiler.debug.DebugContext.Activation;
 import org.graalvm.compiler.debug.DebugHandlersFactory;
@@ -43,6 +44,7 @@ import org.graalvm.compiler.hotspot.CompilationCounters.Options;
 import org.graalvm.compiler.hotspot.HotSpotGraalRuntime.HotSpotGC;
 import org.graalvm.compiler.hotspot.meta.HotSpotProviders;
 import org.graalvm.compiler.hotspot.phases.OnStackReplacementPhase;
+import org.graalvm.compiler.hotspot.phases.VerifyLockDepthPhase;
 import org.graalvm.compiler.java.GraphBuilderPhase;
 import org.graalvm.compiler.java.StableMethodNameFormatter;
 import org.graalvm.compiler.lir.asm.CompilationResultBuilderFactory;
@@ -302,6 +304,9 @@ public class HotSpotGraalCompiler implements GraalJVMCICompiler, Cancellable, JV
             }
             GraphBuilderPhase newGraphBuilderPhase = new GraphBuilderPhase(graphBuilderConfig);
             newGbs.findPhase(GraphBuilderPhase.class).set(newGraphBuilderPhase);
+            if (Assertions.assertionsEnabled()) {
+                newGbs.appendPhase(new VerifyLockDepthPhase());
+            }
             if (isOSR) {
                 newGbs.appendPhase(new OnStackReplacementPhase());
             }

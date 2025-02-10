@@ -603,6 +603,7 @@ public final class GraphState {
     public enum StageFlag {
         CANONICALIZATION,
         /* Stages applied by high tier. */
+        PARTIAL_ESCAPE,
         FINAL_PARTIAL_ESCAPE,
         HIGH_TIER_LOWERING,
         /* Stages applied by mid tier. */

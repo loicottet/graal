@@ -247,12 +247,6 @@ public class OnStackReplacementPhase extends BasePhase<CoreProviders> {
                     ValueNode lockedObject = osrState.lockAt(i);
                     OSRMonitorEnterNode osrMonitorEnter = graph.add(new OSRMonitorEnterNode(lockedObject, id));
                     osrMonitorEnter.setStateAfter(osrStart.stateAfter());
-                    for (Node usage : id.usages()) {
-                        if (usage instanceof AccessMonitorNode) {
-                            AccessMonitorNode access = (AccessMonitorNode) usage;
-                            access.setObject(lockedObject);
-                        }
-                    }
                     FixedNode oldNext = osrStart.next();
                     oldNext.replaceAtPredecessor(null);
                     osrMonitorEnter.setNext(oldNext);
@@ -261,19 +255,10 @@ public class OnStackReplacementPhase extends BasePhase<CoreProviders> {
             }
 
             debug.dump(DebugContext.DETAILED_LEVEL, graph, "After inserting OSR monitor enters");
-            /*
-             * Ensure balanced monitorenter - monitorexit
-             *
-             * Ensure that there is no monitor exit without a monitor enter in the graph. If there
-             * is one this can only be done by bytecode as we have the monitor enter before the OSR
-             * loop but the exit in a path of the loop that must be under a condition, else it will
-             * throw an IllegalStateException anyway in the 2.iteration
-             */
-            for (MonitorExitNode exit : graph.getNodes(MonitorExitNode.TYPE)) {
-                MonitorIdNode id = exit.getMonitorId();
-                if (id.usages().filter(MonitorEnterNode.class).count() != 1) {
-                    throw new PermanentBailoutException("Unbalanced monitor enter-exit in OSR compilation with locks. Object is locked before the loop but released inside the loop.");
-                }
+            try {
+                new VerifyLockDepthPhase().run(graph);
+            } catch (VerifyLockDepthPhase.LockStructureError e) {
+                throw new PermanentBailoutException("Unbalanced monitor enter-exit in OSR compilation with locks: " + e.getMessage());
             }
         }
         debug.dump(DebugContext.DETAILED_LEVEL, graph, "OnStackReplacement result");
