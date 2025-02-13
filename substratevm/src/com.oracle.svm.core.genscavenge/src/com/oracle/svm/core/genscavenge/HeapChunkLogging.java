@@ -85,7 +85,7 @@ class HeapChunkLogging {
         log.string("|").unsigned(usedPercent, 3, RIGHT_ALIGN).string("%");
         log.string("|").string(shortSpaceName, 3, RIGHT_ALIGN);
         log.string("|").string(isAligned ? "A" : "U");
-        log.string("|").string(isFromSpace ? "" : "T");
+        log.string("|").string(isFromSpace ? " " : "T");
         log.newline();
     }
 }

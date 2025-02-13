@@ -71,9 +71,12 @@ import com.oracle.svm.core.genscavenge.HeapChunk.Header;
 import com.oracle.svm.core.genscavenge.UnalignedHeapChunk.UnalignedHeader;
 import com.oracle.svm.core.genscavenge.remset.RememberedSet;
 import com.oracle.svm.core.graal.RuntimeCompilation;
+import com.oracle.svm.core.heap.AbstractPinnedObjectSupport;
+import com.oracle.svm.core.heap.AbstractPinnedObjectSupport.PinnedObjectImpl;
 import com.oracle.svm.core.heap.CodeReferenceMapDecoder;
 import com.oracle.svm.core.heap.GC;
 import com.oracle.svm.core.heap.GCCause;
+import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.heap.NoAllocationVerifier;
 import com.oracle.svm.core.heap.OutOfMemoryUtil;
 import com.oracle.svm.core.heap.PhysicalMemory;
@@ -763,49 +766,20 @@ public final class GCImpl implements GC {
         Timer promotePinnedObjectsTimer = timers.promotePinnedObjects.open();
         try {
             // Remove closed pinned objects from the global list. This code needs to use write
-            // barriers as the PinnedObjectImpls are a linked list and we don't know in which
+            // barriers as the PinnedObjectImpls are a linked list, and we don't know in which
             // generation each individual PinnedObjectImpl lives. So, the card table will be
             // modified.
-            PinnedObjectImpl pinnedObjects = removeClosedPinnedObjects(PinnedObjectImpl.getPinnedObjects());
-            PinnedObjectImpl.setPinnedObjects(pinnedObjects);
+            PinnedObjectImpl cur = AbstractPinnedObjectSupport.singleton().removeClosedObjectsAndGetFirstOpenObject();
 
             // Promote all chunks that contain pinned objects. The card table of the promoted chunks
             // will be cleaned.
-            PinnedObjectImpl cur = pinnedObjects;
             while (cur != null) {
-                assert cur.isOpen();
-                promotePinnedObject(cur);
+                promotePinnedObject(cur.getObject());
                 cur = cur.getNext();
             }
         } finally {
             promotePinnedObjectsTimer.close();
         }
-    }
-
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    private static PinnedObjectImpl removeClosedPinnedObjects(PinnedObjectImpl list) {
-        PinnedObjectImpl firstOpen = null;
-        PinnedObjectImpl lastOpen = null;
-
-        PinnedObjectImpl cur = list;
-        while (cur != null) {
-            if (cur.isOpen()) {
-                if (firstOpen == null) {
-                    assert lastOpen == null;
-                    firstOpen = cur;
-                    lastOpen = cur;
-                } else {
-                    lastOpen.setNext(cur);
-                    lastOpen = cur;
-                }
-            }
-            cur = cur.getNext();
-        }
-
-        if (lastOpen != null) {
-            lastOpen.setNext(null);
-        }
-        return firstOpen;
     }
 
     @NeverInline("Starting a stack walk in the caller frame. " +
@@ -1085,24 +1059,25 @@ public final class GCImpl implements GC {
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    private void promotePinnedObject(PinnedObjectImpl pinned) {
+    private void promotePinnedObject(Object pinned) {
+        assert pinned != null;
+        assert !Heap.getHeap().isInImageHeap(pinned);
+        assert HeapChunk.getEnclosingHeapChunk(pinned).getPinnedObjectCount() > 0;
+
         HeapImpl heap = HeapImpl.getHeapImpl();
-        Object referent = pinned.getObject();
-        if (referent != null && !heap.isInImageHeap(referent)) {
-            boolean isAligned = ObjectHeaderImpl.isAlignedObject(referent);
-            Header<?> originalChunk = getChunk(referent, isAligned);
-            Space originalSpace = HeapChunk.getSpace(originalChunk);
-            if (originalSpace.isFromSpace()) {
-                boolean promoted = false;
-                if (!completeCollection && originalSpace.getNextAgeForPromotion() < policy.getTenuringAge()) {
-                    promoted = heap.getYoungGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
-                    if (!promoted) {
-                        accounting.onSurvivorOverflowed();
-                    }
-                }
-                if (!promoted) {
-                    heap.getOldGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
-                }
+        boolean isAligned = ObjectHeaderImpl.isAlignedObject(pinned);
+        Header<?> originalChunk = getChunk(pinned, isAligned);
+        Space originalSpace = HeapChunk.getSpace(originalChunk);
+        if (originalSpace.isFromSpace()) {
+        boolean promoted = false;
+        if (!completeCollection && originalSpace.getNextAgeForPromotion() < policy.getTenuringAge()) {
+            promoted = heap.getYoungGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
+            if (!promoted) {
+                accounting.onSurvivorOverflowed();
+            }
+        }
+        if (!promoted) {
+                heap.getOldGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
             }
         }
     }
