@@ -34,12 +34,12 @@ local sulong_deps = common.deps.sulong;
       assert isNonEmptyString(self.job) : "job must be a non-empty string" + $.nameOrEmpty(self);
       assert std.isArray(self.bitcode_config) : "bitcode_config must be an array" + $.nameOrEmpty(self);
       assert std.isArray(self.sulong_config) : "sulong_config must be an array" + $.nameOrEmpty(self);
-      self.targets + [self.suite] + [self.job] + self.bitcode_config + self.sulong_config + [self.jdk] + [self.os] + [self.arch],
+      self.targets + [self.suite] + [self.job] + self.bitcode_config + self.sulong_config + [self.jdk] + ["x52"] + [self.os] + [self.arch],
     gen_name:: std.join("-", self.gen_name_componentes),
   },
 
   defBuild(b):: {
-    assert self.gen_name == self.name : "Name error. expected '%s', actual '%s'" % [self.gen_name, self.name],
+    assert self.gen_name == self.name || std.strReplace(self.gen_name, "-x52-", "-") == self.name : "Name error. expected '%s', actual '%s'" % [self.gen_name, self.name],
   } + $.build_template + b + if std.objectHasAll(b, "description_text") then { description: "%s with %s on %s/%s" % [b.description_text, self.jdk, self.os, self.arch]} else {},
 
   # Generates an array of build specs for give build spec prototypes and platform configurations and applies the names array.
