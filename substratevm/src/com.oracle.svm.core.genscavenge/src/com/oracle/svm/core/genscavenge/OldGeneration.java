@@ -123,6 +123,10 @@ public final class OldGeneration extends Generation {
         return log;
     }
 
+    abstract boolean printLocationInfo(Log log, Pointer ptr);
+
+    abstract void logChunks(Log log);
+
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     Space getFromSpace() {
         return fromSpace;

@@ -53,7 +53,6 @@ abstract class Generation {
 
     /** Report some statistics about the Generation to a Log. */
     public abstract Log report(Log log, boolean traceHeapChunks);
-
     /**
      * Promote an Object to this Generation, typically by copying and leaving a forwarding pointer
      * to the new Object in place of the original Object. If the object cannot be promoted due to

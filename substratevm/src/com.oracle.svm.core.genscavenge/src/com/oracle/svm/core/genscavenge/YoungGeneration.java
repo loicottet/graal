@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.core.genscavenge;
 
+import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.word.UnsignedWord;
@@ -36,6 +37,9 @@ import com.oracle.svm.core.genscavenge.GCImpl.ChunkReleaser;
 import com.oracle.svm.core.heap.ObjectVisitor;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.thread.VMOperation;
+import com.oracle.svm.core.thread.VMThreads;
+
+import jdk.graal.compiler.word.Word;
 
 public final class YoungGeneration extends Generation {
     private final Space eden;
@@ -112,6 +116,29 @@ public final class YoungGeneration extends Generation {
         }
         log.redent(false).redent(false);
         return log;
+    }
+
+    public void logChunks(Log log, boolean allowUnsafe) {
+        if (allowUnsafe) {
+            for (IsolateThread thread = VMThreads.firstThreadUnsafe(); thread.isNonNull(); thread = VMThreads.nextThread(thread)) {
+                logTlabChunks(log, thread);
+            }
+        }
+
+        getEden().logChunks(log);
+        for (int i = 0; i < maxSurvivorSpaces; i++) {
+            this.survivorFromSpaces[i].logChunks(log);
+            this.survivorToSpaces[i].logChunks(log);
+        }
+    }
+
+    private void logTlabChunks(Log log, IsolateThread thread) {
+        ThreadLocalAllocation.Descriptor tlab = HeapImpl.getTlabUnsafe(thread);
+        AlignedHeapChunk.AlignedHeader aChunk = tlab.getAlignedChunk();
+        HeapChunkLogging.logChunks(log, aChunk, eden.getShortName(), false);
+
+        UnalignedHeapChunk.UnalignedHeader uChunk = tlab.getUnalignedChunk();
+        HeapChunkLogging.logChunks(log, uChunk, eden.getShortName(), false);
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
@@ -322,4 +349,19 @@ public final class YoungGeneration extends Generation {
         }
         return HeapImpl.getChunkProvider().produceAlignedChunk();
     }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean printLocationInfo(Log log, Pointer ptr) {
+        if (getEden().printLocationInfo(log, ptr)) {
+            return true;
+        }
+        for (int i = 0; i < getMaxSurvivorSpaces(); i++) {
+            if (getSurvivorFromSpaceAt(i).printLocationInfo(log, ptr)) {
+                return true;
+            }
+            if (getSurvivorToSpaceAt(i).printLocationInfo(log, ptr)) {
 }
