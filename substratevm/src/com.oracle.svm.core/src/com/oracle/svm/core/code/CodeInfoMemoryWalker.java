@@ -30,6 +30,8 @@ import org.graalvm.word.UnsignedWord;
 
 import com.oracle.svm.core.MemoryWalker;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredImageSingleton;
+import com.oracle.svm.core.Uninterruptible;
+
 
 @AutomaticallyRegisteredImageSingleton
 final class CodeInfoMemoryWalker implements MemoryWalker.CodeAccess<CodeInfo> {
@@ -41,6 +43,15 @@ final class CodeInfoMemoryWalker implements MemoryWalker.CodeAccess<CodeInfo> {
     @Override
     public UnsignedWord getStart(CodeInfo codeInfo) {
         return (UnsignedWord) CodeInfoAccess.getCodeStart(codeInfo);
+    }
+
+    @Uninterruptible(reason = "Wrap the now safe call to interruptibly allocate a SecondsNanos object.", calleeMustBe = false)
+    protected static SecondsNanos allocateSecondsNanosInterruptibly(long seconds, long nanos) {
+        return allocateSecondsNanos0(seconds, nanos);
+    }
+
+    private static SecondsNanos allocateSecondsNanos0(long seconds, long nanos) {
+        return new SecondsNanos(seconds, nanos);
     }
 
     @Override

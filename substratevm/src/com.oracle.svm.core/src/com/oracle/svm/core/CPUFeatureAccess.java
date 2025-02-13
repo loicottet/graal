@@ -29,6 +29,7 @@ import java.util.EnumSet;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.ImageSingletons;
 
+import jdk.graal.compiler.api.replacements.Fold;
 import jdk.vm.ci.code.Architecture;
 
 public interface CPUFeatureAccess {
@@ -37,8 +38,10 @@ public interface CPUFeatureAccess {
         return ImageSingletons.lookup(CPUFeatureAccess.class);
     }
 
+    @Uninterruptible(reason = "Thread state not set up yet.")
     int verifyHostSupportsArchitectureEarly();
 
+    @Uninterruptible(reason = "Thread state not set up yet.")
     void verifyHostSupportsArchitectureEarlyOrExit();
 
     void enableFeatures(Architecture architecture);
