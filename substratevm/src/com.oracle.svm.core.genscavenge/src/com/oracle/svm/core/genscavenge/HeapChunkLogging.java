@@ -68,4 +68,17 @@ class HeapChunkLogging {
             log.redent(false);
         }
     }
+    
+        private static void logChunk(Log log, HeapChunk.Header<?> chunk, Pointer bottom, Pointer top, Pointer end, boolean isAligned, String shortSpaceName, boolean isFromSpace) {
+        UnsignedWord used = top.subtract(bottom);
+        UnsignedWord capacity = end.subtract(bottom);
+        UnsignedWord usedPercent = used.multiply(100).unsignedDivide(capacity);
+
+        log.string("|").zhex(chunk).string("|").zhex(bottom).string(", ").zhex(top).string(", ").zhex(end);
+        log.string("|").unsigned(usedPercent, 3, RIGHT_ALIGN).string("%");
+        log.string("|").string(shortSpaceName, 3, RIGHT_ALIGN);
+        log.string("|").string(isAligned ? "A" : "U");
+        log.string("|").string(isFromSpace ? " " : "T");
+        log.newline();
+    }
 }
