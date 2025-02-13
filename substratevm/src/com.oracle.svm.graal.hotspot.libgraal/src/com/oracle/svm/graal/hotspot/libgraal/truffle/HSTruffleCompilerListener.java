@@ -24,16 +24,16 @@
  */
 package com.oracle.svm.graal.hotspot.libgraal.truffle;
 
-import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnCompilationRetry;
-import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnFailure;
-import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnGraalTierFinished;
-import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnSuccess;
-import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnTruffleTierFinished;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilerListenerGen.callOnCompilationRetry;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilerListenerGen.callOnFailure;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilerListenerGen.callOnGraalTierFinished;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilerListenerGen.callOnSuccess;
 import static com.oracle.svm.graal.hotspot.libgraal.truffle.HSTruffleCompilerListenerGen.callOnTruffleTierFinished;
+import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnCompilationRetry;
+import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnFailure;
+import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnGraalTierFinished;
+import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnSuccess;
+import static com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal.Id.OnTruffleTierFinished;
 import static org.graalvm.jniutils.JNIUtil.ExceptionClear;
 import static org.graalvm.jniutils.JNIUtil.GetStaticMethodID;
 import static org.graalvm.jniutils.JNIUtil.createHSString;
@@ -42,23 +42,22 @@ import static org.graalvm.nativeimage.c.type.CTypeConversion.toCString;
 import java.io.Closeable;
 import java.util.function.Supplier;
 
-import com.oracle.truffle.compiler.hotspot.libgraal.FromLibGraalId;
 import org.graalvm.jniutils.HSObject;
 import org.graalvm.jniutils.JNI.JMethodID;
 import org.graalvm.jniutils.JNI.JNIEnv;
 import org.graalvm.jniutils.JNI.JObject;
 import org.graalvm.jniutils.JNI.JString;
 import org.graalvm.jniutils.JNI.JValue;
-
-import com.oracle.truffle.compiler.TruffleCompilable;
-import com.oracle.truffle.compiler.TruffleCompilationTask;
-import com.oracle.truffle.compiler.TruffleCompilerListener;
-import com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal;
-
 import org.graalvm.jniutils.JNICalls.JNIMethod;
 import org.graalvm.jniutils.JNIMethodScope;
 import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.type.CTypeConversion;
+
+import com.oracle.truffle.compiler.TruffleCompilable;
+import com.oracle.truffle.compiler.TruffleCompilationTask;
+import com.oracle.truffle.compiler.TruffleCompilerListener;
+import com.oracle.truffle.compiler.hotspot.libgraal.FromLibGraalId;
+import com.oracle.truffle.compiler.hotspot.libgraal.TruffleFromLibGraal;
 
 /**
  * Proxy for a {@link TruffleCompilerListener} object in the HotSpot heap.
@@ -127,7 +126,7 @@ final class HSTruffleCompilerListener extends HSObject implements TruffleCompile
     private JNIMethod findOnFailureNewMethod(JNIEnv env) {
         JNIMethod res = onFailureNewMethod;
         if (res == null) {
-            res = findJNIMethod(env, "onFailure", void.class, Object.class, Object.class, String.class,
+            res = findJNIMethod(env, calls, "onFailure", void.class, Object.class, Object.class, String.class,
                             boolean.class, boolean.class, int.class, long.class);
             onFailureNewMethod = res;
         }
@@ -147,10 +146,10 @@ final class HSTruffleCompilerListener extends HSObject implements TruffleCompile
         calls.getJNICalls().callStaticVoid(env, calls.getPeer(), onFailureMethod, args);
     }
 
-    private JNIMethod findJNIMethod(JNIEnv env, String methodName, Class<?> returnType, Class<?>... parameterTypes) {
+    static JNIMethod findJNIMethod(JNIEnv env, TruffleFromLibGraalCalls truffleFromLibGraalCalls, String methodName, Class<?> returnType, Class<?>... parameterTypes) {
         try (CTypeConversion.CCharPointerHolder cname = toCString(methodName);
                         CTypeConversion.CCharPointerHolder csig = toCString(FromLibGraalId.encodeMethodSignature(returnType, parameterTypes))) {
-            JMethodID jniId = GetStaticMethodID(env, calls.getPeer(), cname.get(), csig.get());
+            JMethodID jniId = GetStaticMethodID(env, truffleFromLibGraalCalls.getPeer(), cname.get(), csig.get());
             if (jniId.isNull()) {
                 /*
                  * The `onFailure` method with 7 arguments is not available in Truffle runtime 24.0,

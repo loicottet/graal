@@ -2,7 +2,10 @@
 
 This changelog summarizes major changes between GraalVM SDK versions. The main focus is on APIs exported by GraalVM SDK.
 
-## Version 23.1.5
+## Version 23.1.7
+* GR-61490 Added the option `engine.MaximumCompilations` to protect against too many repeated compilations of the same call target. The default value is `100`.
+
+## Version 23.1.5 
 * (GR-54674) Added the options `engine.TraceSourceCache` and `engine.TraceSourceCacheDetails` to allow tracing of source cache hits, misses, failures and evictions.
 
 ## Version 23.1.3

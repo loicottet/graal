@@ -64,9 +64,11 @@ import org.graalvm.jniutils.JNI;
 import org.graalvm.jniutils.JNI.JNIEnv;
 import org.graalvm.jniutils.JNI.JObject;
 import org.graalvm.jniutils.JNI.JString;
+import org.graalvm.jniutils.JNICalls;
 import org.graalvm.jniutils.JNIMethodScope;
 import org.graalvm.jniutils.JNIUtil;
 import org.graalvm.nativebridge.BinaryInput;
+import org.graalvm.nativeimage.StackValue;
 
 import com.oracle.svm.graal.hotspot.libgraal.LibGraal;
 import com.oracle.truffle.compiler.TruffleCompilable;
@@ -170,6 +172,30 @@ final class HSTruffleCompilable extends HSObject implements TruffleCompilable {
             if (!success) {
                 LibGraalObjectHandles.remove(serializedExceptionHandle);
             }
+        }
+    }
+
+    private static volatile JNICalls.JNIMethod onCompilationSuccessMethod;
+
+    private JNICalls.JNIMethod findOnCompilationSuccessMethod(JNIEnv env) {
+        JNICalls.JNIMethod res = onCompilationSuccessMethod;
+        if (res == null) {
+            res = HSTruffleCompilerListener.findJNIMethod(env, calls, "onCompilationSuccess", void.class, Object.class, int.class, boolean.class);
+            onCompilationSuccessMethod = res;
+        }
+        return res.getJMethodID().isNonNull() ? res : null;
+    }
+
+    @Override
+    public void onCompilationSuccess(int compilationTier, boolean lastTier) {
+        JNIEnv env = JNIMethodScope.env();
+        JNICalls.JNIMethod methodOrNull = findOnCompilationSuccessMethod(env);
+        if (methodOrNull != null) {
+            JNI.JValue args = StackValue.get(3, JNI.JValue.class);
+            args.addressOf(0).setJObject(getHandle());
+            args.addressOf(1).setInt(compilationTier);
+            args.addressOf(2).setBoolean(lastTier);
+            calls.getJNICalls().callStaticVoid(env, calls.getPeer(), methodOrNull, args);
         }
     }
 
