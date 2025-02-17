@@ -136,7 +136,7 @@ class NativeImageVM(GraalVm):
             self.bmSuite = bm_suite
             self.benchmark_suite_name = bm_suite.benchSuiteName(args) if len(inspect.getfullargspec(bm_suite.benchSuiteName).args) > 1 else bm_suite.benchSuiteName()
             self.benchmark_name = bm_suite.benchmarkName()
-            self.executable, self.classpath_arguments, self.system_properties, self.image_vm_args, image_run_args, self.split_run = NativeImageVM.extract_benchmark_arguments(args)
+            self.executable, self.classpath_arguments, self.system_properties, self.image_vm_args, image_run_args, self.split_run = NativeImageVM.extract_benchmark_arguments(args, bm_suite.all_command_line_args_are_vm_args())
             self.extra_image_build_arguments = bm_suite.extra_image_build_argument(self.benchmark_name, args)
             # use list() to create fresh copies to safeguard against accidental modification
             self.image_run_args = bm_suite.extra_run_arg(self.benchmark_name, args, list(image_run_args))
@@ -463,7 +463,10 @@ class NativeImageVM(GraalVm):
                                     '--patch-module', '--boot-class-path', '--source-path', '-cp', '-classpath']
 
     @staticmethod
-    def _split_vm_arguments(args):
+    def _split_vm_arguments(args, all_args_are_vm_args):
+        if all_args_are_vm_args:
+            return args, [], []
+
         i = 0
         while i < len(args):
             arg = args[i]
@@ -479,7 +482,7 @@ class NativeImageVM(GraalVm):
         mx.abort('No executable found in args: ' + str(args))
 
     @staticmethod
-    def extract_benchmark_arguments(args):
+    def extract_benchmark_arguments(args, all_args_are_vm_args):
         i = 0
         clean_args = args[:]
         split_run = None
@@ -493,7 +496,7 @@ class NativeImageVM(GraalVm):
             else:
                 i += 1
         clean_args = [x for x in clean_args if "-Dnative-image" not in x]
-        vm_args, executable, image_run_args = NativeImageVM._split_vm_arguments(clean_args)
+        vm_args, executable, image_run_args = NativeImageVM._split_vm_arguments(clean_args, all_args_are_vm_args)
 
         classpath_arguments = []
         system_properties = [a for a in vm_args if a.startswith('-D')]
