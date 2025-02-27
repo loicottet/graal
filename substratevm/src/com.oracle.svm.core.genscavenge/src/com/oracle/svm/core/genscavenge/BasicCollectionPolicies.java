@@ -39,6 +39,8 @@ import com.oracle.svm.core.heap.ReferenceAccess;
 import com.oracle.svm.core.util.TimeUtils;
 import com.oracle.svm.core.util.VMError;
 
+import jdk.graal.compiler.word.Word;
+
 /** Basic/legacy garbage collection policies. */
 final class BasicCollectionPolicies {
     @Platforms(Platform.HOSTED_ONLY.class)
