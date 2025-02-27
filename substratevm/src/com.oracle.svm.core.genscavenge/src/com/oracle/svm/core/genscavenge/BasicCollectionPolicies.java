@@ -105,7 +105,7 @@ final class BasicCollectionPolicies {
              * If the physical size is known yet, the maximum size of the heap is a fraction of the
              * size of the physical memory.
              */
-            UnsignedWord addressSpaceSize = ReferenceAccess.singleton().getAddressSpaceSize();
+            UnsignedWord addressSpaceSize = ReferenceAccess.singleton().getMaxAddressSpaceSize();
             if (PhysicalMemory.isInitialized()) {
                 UnsignedWord physicalMemorySize = PhysicalMemory.getCachedSize();
                 int maximumHeapSizePercent = HeapParameters.getMaximumHeapSizePercent();
