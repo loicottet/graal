@@ -51,6 +51,7 @@ class AggressiveShrinkCollectionPolicy extends AdaptiveCollectionPolicy {
     protected static final UnsignedWord FULL_GC_BONUS = WordFactory.unsigned(2L * 1024L * 1024L);
 
     protected static final UnsignedWord MAXIMUM_HEAP_SIZE = WordFactory.unsigned(16L * 1024L * 1024L * 1024L);
+    protected static final UnsignedWord MAXIMUM_YOUNG_SIZE = Word.unsigned(5L * 1024L * 1024L * 1024L);
 
     private UnsignedWord sizeBefore = WordFactory.zero();
     private GCCause lastGCCause = null;
@@ -87,12 +88,12 @@ class AggressiveShrinkCollectionPolicy extends AdaptiveCollectionPolicy {
     }
 
     @Override
-    public UnsignedWord getMaximumHeapSize() {
-        UnsignedWord initialSetup = super.getMaximumHeapSize();
-        if (initialSetup.aboveThan(MAXIMUM_HEAP_SIZE)) {
-            return MAXIMUM_HEAP_SIZE;
-        }
-        return initialSetup;
+    protected UnsignedWord getHeapSizeLimit() {
+        return UnsignedUtils.min(super.getHeapSizeLimit(), MAXIMUM_HEAP_SIZE);
+    }
+
+    protected UnsignedWord getYoungSizeLimit(UnsignedWord maxHeap) {
+        return UnsignedUtils.min(super.getYoungSizeLimit(maxHeap), MAXIMUM_YOUNG_SIZE);
     }
 
     @Override
