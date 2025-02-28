@@ -5,13 +5,20 @@ local vm_common = import '../ci_common/common.jsonnet';
 local repo_config = import '../../../ci/repo-configuration.libsonnet';
 
 {
-  vm_bench_common: {
-    result_file:: 'results.json',
-    upload:: ['bench-uploader.py', self.result_file],
-    upload_and_wait_for_indexing:: self.upload + ['--wait-for-indexing'],
-    capabilities+: ['tmpfs25g', 'x52'],
-    timelimit: '1:30:00',
-  },
+  vm_bench_base(machine_name=null)::
+    {
+      result_file:: 'results.json',
+      upload:: ['bench-uploader.py', self.result_file],
+      upload_and_wait_for_indexing:: self.upload + ['--wait-for-indexing'],
+      timelimit: '1:30:00',
+      capabilities+: if std.objectHasAll(self, 'machine_name') then [self.machine_name] else [],
+    } +
+    (if machine_name != null then {
+      machine_name:: machine_name,
+      capabilities+: [machine_name]
+    } else {}),
+
+  vm_bench_common: self.vm_bench_base(machine_name='x52') + { capabilities+: ['tmpfs25g'] },
 
   vm_bench_js_linux_amd64(bench_suite=null): vm.vm_java_17 + vm_common.svm_common_linux_amd64 + vm_common.sulong_linux + vm.custom_vm_linux + self.vm_bench_common + {
     cmd_base:: vm_common.mx_vm_common + ['--dynamicimports', 'js-benchmarks', 'benchmark', '--results-file', self.result_file],
@@ -30,7 +37,11 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
       ] else [],
   },
 
-  polybench_hpc_linux_common: {
+  polybench_hpc_linux_common(shape=null):
+    (if shape != null then {
+      machine_name:: shape,
+      capabilities+: [shape],
+    } else {}) + {
     packages+: {
       'papi': '==5.5.1',
     },
@@ -38,11 +49,10 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
       ENABLE_POLYBENCH_HPC: 'yes',
       POLYBENCH_HPC_EXTRA_HEADERS: '/cm/shared/apps/papi/papi-5.5.1/include',
       POLYBENCH_HPC_PAPI_LIB_DIR: '/cm/shared/apps/papi/papi-5.5.1/lib',
-      LIBPFM_FORCE_PMU: 'amd64'
-    },
+    } + if !std.objectHasAll(self, 'machine_name') then {} else if self.machine_name == 'e3' then {LIBPFM_FORCE_PMU: 'amd64'} else if self.machine_name == 'x52' then {} else {},
   },
 
-  vm_bench_polybenchmarks_linux_common(env='polybench-${VM_ENV}', vm_config='jvm', is_gate=false, suite='default:*'): vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + self.vm_bench_common + vm.vm_java_17 + self.polybench_hpc_linux_common + {
+  vm_bench_polybenchmarks_linux_common(env='polybench-${VM_ENV}', vm_config='jvm', is_gate=false, suite='default:*', shape=null): vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + vm.vm_java_17 + self.polybench_hpc_linux_common(shape=shape) + {
     base_cmd:: ['mx', '--env', env, '--dy', 'polybenchmarks'],
     bench_cmd:: self.base_cmd + ['benchmark', '--results-file', self.result_file],
     setup+: [
@@ -61,7 +71,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
     notify_emails+: if (is_gate) then [] else [ 'boris.spasojevic@oracle.com' ],
     teardown+:      if (is_gate) then [] else [ $.vm_bench_common.upload ],
     timelimit:      if (is_gate) then '1:00:00' else '1:30:00',
-  },
+  } + (if is_gate then self.vm_bench_base(machine_name=null) else self.vm_bench_common),
 
   local wabt = {
     packages+: {
@@ -75,7 +85,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
     },
   },
 
-  vm_bench_polybench_linux_common(env='polybench-${VM_ENV}', is_gate=false): vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + self.vm_bench_common + wabt {
+  vm_bench_polybench_linux_common(env='polybench-${VM_ENV}', is_gate=false, skip_machine=false): (if skip_machine then self.vm_bench_base(machine_name=null) else self.vm_bench_common) + vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + wabt {
     base_cmd:: ['mx', '--env', env],
     bench_cmd:: self.base_cmd + ['benchmark'] + (if (is_gate) then ['--fail-fast'] else []),
     interpreter_bench_cmd:: self.bench_cmd + ['polybench:~r[(compiler/.*)|(warmup/.*)]', '--results-file', self.result_file, '--', '--polybench-vm=graalvm-${VM_ENV}'],
@@ -89,15 +99,13 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
     notify_groups:: ['polybench'],
   },
 
-  vm_bench_polybench_hpc_linux_common(env, metric, benchmarks='*', polybench_vm_config='native-interpreter'): self.vm_bench_polybench_linux_common(env=env) + self.polybench_hpc_linux_common + {
-    local machine_name = "x52",     // restricting ourselves to specific hardware to ensure performance counters work there
+  vm_bench_polybench_hpc_linux_common(env, metric, benchmarks='*', polybench_vm_config='native-interpreter'): self.polybench_hpc_linux_common(shape='e4_36_256') + self.vm_bench_polybench_linux_common(env=env, is_gate=false, skip_machine=true) + {
     machine_name_prefix:: "gate-",
-    capabilities+: [machine_name],
     run+: [
       self.base_cmd + ['benchmark', 'polybench:'+benchmarks,
                        '--fork-count-file', 'ci/ci_includes/polybench-hpc.json',
                        '--results-file', self.result_file,
-                       '--machine-name', self.machine_name_prefix + machine_name,
+                       '--machine-name', self.machine_name_prefix + self.machine_name,
                        '--',
                        '--metric=' + metric,
                        '--polybench-vm-config=' + polybench_vm_config],
@@ -165,7 +173,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
     timelimit: '4:00:00',
   },
 
-  vm_gate_polybench_linux: self.vm_bench_polybench_linux_common(is_gate=true) + vm.vm_java_17 + {
+  vm_gate_polybench_linux: self.vm_bench_polybench_linux_common(is_gate=true, skip_machine=true) + vm.vm_java_17 + {
     interpreter_bench_cmd:: super.interpreter_bench_cmd + ['-w', '1', '-i', '1'],
     compiler_bench_cmd:: super.compiler_bench_cmd + ['-w', '0', '-i', '1'],
     warmup_bench_cmd:: super.warmup_bench_cmd + ['-w', '1', '-i', '1'],
@@ -277,7 +285,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
       notify_groups:: ['javascript'],
     },
 
-    vm_common.gate_vm_linux_amd64 + self.vm_bench_polybenchmarks_linux_common(is_gate=true)    + {name: 'gate-vm-' + vm.vm_setup.short_name + '-polybenchmarks-linux-amd64'},
+    vm_common.gate_vm_linux_amd64 + self.vm_bench_polybenchmarks_linux_common(is_gate=true, shape='e4_36_256')    + {name: 'gate-vm-' + vm.vm_setup.short_name + '-polybenchmarks-linux-amd64'},
     vm_common.gate_vm_linux_amd64 + self.vm_gate_polybench_linux + {name: 'gate-vm-' + vm.vm_setup.short_name + '-polybench-linux-amd64'},
   ],
 
