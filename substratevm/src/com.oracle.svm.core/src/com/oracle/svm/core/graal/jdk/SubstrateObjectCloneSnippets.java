@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,7 @@ import org.graalvm.compiler.nodes.StructuredGraph;
 import org.graalvm.compiler.nodes.ValueNode;
 import org.graalvm.compiler.nodes.extended.BranchProbabilityNode;
 import org.graalvm.compiler.nodes.extended.ForeignCallNode;
+import org.graalvm.compiler.nodes.extended.MembarNode;
 import org.graalvm.compiler.nodes.java.ArrayLengthNode;
 import org.graalvm.compiler.nodes.spi.LoweringTool;
 import org.graalvm.compiler.nodes.spi.VirtualizerTool;
@@ -170,6 +171,11 @@ public final class SubstrateObjectCloneSnippets extends SubstrateTemplates imple
             BarrieredAccess.writeObject(result, monitorOffset, null);
         }
 
+        /*
+         * Emit a STORE_STORE barrier to ensure that other threads see consistent values for final
+         * fields and VM internal fields.
+         */
+        MembarNode.memoryBarrier(MembarNode.FenceKind.STORE_STORE);
         return result;
     }
 
