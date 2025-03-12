@@ -343,7 +343,7 @@ abstract class AbstractCollectionPolicy implements CollectionPolicy {
         if (optionMax > 0L) {
             maxHeap = WordFactory.unsigned(optionMax);
         } else if (!PhysicalMemory.isInitialized()) {
-            maxHeap = addressSpaceSize;
+            maxHeap = ReferenceAccess.singleton().getMaxAddressSpaceSize();
         } else {
             maxHeap = PhysicalMemory.getCachedSize().unsignedDivide(100).multiply(HeapParameters.getMaximumHeapSizePercent());
         }

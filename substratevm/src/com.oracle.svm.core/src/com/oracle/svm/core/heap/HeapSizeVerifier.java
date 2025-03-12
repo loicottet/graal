@@ -34,8 +34,6 @@ import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.util.UserError;
 import com.oracle.svm.core.util.UserError.UserException;
 
-import jdk.graal.compiler.word.Word;
-
 /**
  * Verifies that the heap size options are used consistently. Note that some checks seem redundant
  * at first glance. However, those checks are needed because options don't necessarily have a value.

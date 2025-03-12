@@ -59,7 +59,7 @@ class LibGraalCollectionPolicy extends AdaptiveCollectionPolicy {
      * See class javadoc for rationale behind this 16G limit.
      */
     protected static final UnsignedWord MAXIMUM_HEAP_SIZE = WordFactory.unsigned(16L * 1024L * 1024L * 1024L);
-    protected static final UnsignedWord MAXIMUM_YOUNG_SIZE = Word.unsigned(5L * 1024L * 1024L * 1024L);
+    protected static final UnsignedWord MAXIMUM_YOUNG_SIZE = WordFactory.unsigned(5L * 1024L * 1024L * 1024L);
 
     private UnsignedWord sizeBefore = WordFactory.zero();
     private GCCause lastGCCause = null;
@@ -100,6 +100,7 @@ class LibGraalCollectionPolicy extends AdaptiveCollectionPolicy {
         return UnsignedUtils.min(super.getHeapSizeLimit(), MAXIMUM_HEAP_SIZE);
     }
 
+    @Override
     protected UnsignedWord getYoungSizeLimit(UnsignedWord maxHeap) {
         return UnsignedUtils.min(super.getYoungSizeLimit(maxHeap), MAXIMUM_YOUNG_SIZE);
     }

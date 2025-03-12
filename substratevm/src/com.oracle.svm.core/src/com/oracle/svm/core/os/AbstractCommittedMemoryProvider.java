@@ -42,8 +42,6 @@ import com.oracle.svm.core.c.function.CEntryPointErrors;
 import com.oracle.svm.core.heap.Heap;
 import com.oracle.svm.core.util.UnsignedUtils;
 
-import jdk.graal.compiler.word.Word;
-
 public abstract class AbstractCommittedMemoryProvider implements CommittedMemoryProvider {
     @Fold
     @Override

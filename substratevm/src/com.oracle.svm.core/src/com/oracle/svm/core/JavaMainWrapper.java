@@ -83,8 +83,6 @@ import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.ClassUtil;
 import com.oracle.svm.util.ReflectionUtil;
 
-import jdk.graal.compiler.word.Word;
-
 @InternalVMMethod
 public class JavaMainWrapper {
     /*
