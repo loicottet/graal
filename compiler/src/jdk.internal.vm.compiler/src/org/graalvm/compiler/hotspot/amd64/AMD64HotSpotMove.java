@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -104,6 +104,16 @@ public class AMD64HotSpotMove {
         public AllocatableValue getResult() {
             return result;
         }
+
+        @Override
+        public boolean canRematerializeToStack() {
+            /*
+             * This is slightly too lenient, formally we would also need to check if the target
+             * allows inlining objects. In practice that is always true, and we do not have access
+             * to the relevant information here.
+             */
+            return input.isCompressed();
+        }
     }
 
     public static final class BaseMove extends AMD64LIRInstruction {
@@ -166,6 +176,11 @@ public class AMD64HotSpotMove {
         @Override
         public AllocatableValue getResult() {
             return result;
+        }
+
+        @Override
+        public boolean canRematerializeToStack() {
+            return input.isCompressed();
         }
     }
 
