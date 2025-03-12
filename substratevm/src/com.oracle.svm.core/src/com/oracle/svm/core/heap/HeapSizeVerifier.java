@@ -34,8 +34,6 @@ import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.util.UserError;
 import com.oracle.svm.core.util.UserError.UserException;
 
-import jdk.graal.compiler.word.Word;
-
 /**
  * Verifies that the heap size options are used consistently. Note that some checks seem redundant
  * at first glance. However, those checks are needed because options don't necessarily have a value.
@@ -101,17 +99,6 @@ public final class HeapSizeVerifier {
             if (ReferenceAccess.singleton().getCompressionShift() > 0) {
                 message += " To allow larger values, please disable compressed references when building the image by adding the option '-H:-UseCompressedReferences'";
             }
-            throw reportError(message);
-
-            String message = formatError(actualValue, actualValueName, reservedAddressSpaceSize, SubstrateGCOptions.ReservedAddressSpaceSize.getName());
-            throw reportError(message);
-        }
-    }
-
-    private static void verifyAgainstReservedAddressSpaceSize(UnsignedWord actualValue, String actualValueName) {
-        UnsignedWord reservedAddressSpaceSize = WordFactory.unsigned(SubstrateGCOptions.ReservedAddressSpaceSize.getValue());
-        if (reservedAddressSpaceSize.notEqual(0) && actualValue.aboveThan(reservedAddressSpaceSize)) {
-            String message = formatError(actualValue, actualValueName, reservedAddressSpaceSize, SubstrateGCOptions.ReservedAddressSpaceSize.getName());
             throw reportError(message);
         }
     }

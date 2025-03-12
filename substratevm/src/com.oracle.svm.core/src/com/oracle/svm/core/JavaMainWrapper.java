@@ -77,8 +77,6 @@ import com.oracle.svm.core.util.CounterSupport;
 import com.oracle.svm.core.thread.VMThreads.OSThreadHandle;
 import com.oracle.svm.core.util.VMError;
 
-import jdk.graal.compiler.word.Word;
-
 @InternalVMMethod
 public class JavaMainWrapper {
     /*

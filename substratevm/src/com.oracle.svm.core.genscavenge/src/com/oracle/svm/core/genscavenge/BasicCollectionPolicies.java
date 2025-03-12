@@ -38,8 +38,6 @@ import com.oracle.svm.core.os.CommittedMemoryProvider;
 import com.oracle.svm.core.util.TimeUtils;
 import com.oracle.svm.core.util.VMError;
 
-import jdk.graal.compiler.word.Word;
-
 /** Basic/legacy garbage collection policies. */
 final class BasicCollectionPolicies {
     @Platforms(Platform.HOSTED_ONLY.class)
@@ -106,10 +104,9 @@ final class BasicCollectionPolicies {
              */
             UnsignedWord addressSpaceSize = CommittedMemoryProvider.get().getCollectedHeapAddressSpaceSize();
             if (PhysicalMemory.isInitialized()) {
-                UnsignedWord physicalMemorySize = PhysicalMemory.getCachedSize();
                 int maximumHeapSizePercent = HeapParameters.getMaximumHeapSizePercent();
                 /* Do not cache because `-Xmx` option parsing may not have happened yet. */
-                UnsignedWord result = physicalMemorySize.unsignedDivide(100).multiply(maximumHeapSizePercent);
+                UnsignedWord result = PhysicalMemory.getCachedSize().unsignedDivide(100).multiply(maximumHeapSizePercent);
                 if (result.belowThan(addressSpaceSize)) {
                     return result;
                 }
