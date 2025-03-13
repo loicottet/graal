@@ -49,7 +49,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
       ENABLE_POLYBENCH_HPC: 'yes',
       POLYBENCH_HPC_EXTRA_HEADERS: '/cm/shared/apps/papi/papi-5.5.1/include',
       POLYBENCH_HPC_PAPI_LIB_DIR: '/cm/shared/apps/papi/papi-5.5.1/lib',
-    } + if !std.objectHasAll(self, 'machine_name') then {} else if self.machine_name == 'e3' then {LIBPFM_FORCE_PMU: 'amd64'} else if self.machine_name == 'x52' then {} else {},
+    } + if !std.objectHasAll(self, 'machine_name') then {} else if self.machine_name  == 'e3' ||  self.machine_name  == 'e4_36_256' then {LIBPFM_FORCE_PMU: 'amd64'} else if self.machine_name == 'x52' then {} else {},
   },
 
   vm_bench_polybenchmarks_linux_common(env='polybench-${VM_ENV}', vm_config='jvm', is_gate=false, suite='default:*', shape=null): vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + vm.vm_java_17 + self.polybench_hpc_linux_common(shape=shape) + {
