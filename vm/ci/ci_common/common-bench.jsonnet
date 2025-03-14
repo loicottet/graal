@@ -59,7 +59,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
     base_cmd:: ['mx', '--env', env, '--dy', 'polybenchmarks'],
   },
 
-  vm_bench_polybenchmarks_linux_build: vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + self.vm_bench_common + vm.vm_java_21 + self.polybench_hpc_linux_common(shape=null) + self.vm_bench_polybenchmarks_base(env='polybench-${VM_ENV}') + {
+  vm_bench_polybenchmarks_linux_build: vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + self.vm_bench_common + vm.vm_java_21 + self.polybench_hpc_linux_common(shape='e4_36_256') + self.vm_bench_polybenchmarks_base(env='polybench-${VM_ENV}') + {
     setup+: [
       self.base_cmd + ['sforceimports'],
     ],
@@ -79,7 +79,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
     targets+: ['ondemand'],
   },
 
-  vm_bench_polybenchmarks_linux_common(vm_config='jvm', is_gate=false, suite='default:*'): vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + vm.vm_java_21 + self.polybench_hpc_linux_common() + self.vm_bench_polybenchmarks_base(env='polybench-${VM_ENV}') {
+  vm_bench_polybenchmarks_linux_common(vm_config='jvm', is_gate=false, suite='default:*', shape=null): vm_common.svm_common_linux_amd64 + vm_common.truffleruby_linux_amd64 + vm.custom_vm_linux + vm.vm_java_21 + self.polybench_hpc_linux_common(shape=shape) + self.vm_bench_polybenchmarks_base(env='polybench-${VM_ENV}') {
     bench_cmd:: self.base_cmd + ['benchmark', '--results-file', self.result_file],
     setup+: [
       self.base_cmd + ['sforceimports'],
@@ -328,7 +328,7 @@ local repo_config = import '../../../ci/repo-configuration.libsonnet';
       notify_groups:: ['javascript'],
     },
 
-    vm_common.gate_vm_linux_amd64 + self.vm_bench_polybenchmarks_linux_common(is_gate=true)    + {name: 'gate-vm-' + vm.vm_setup.short_name + '-polybenchmarks-' + hardware_name(self)},
+    vm_common.gate_vm_linux_amd64 + self.vm_bench_polybenchmarks_linux_common(is_gate=true, shape='e4_36_256')    + {name: 'gate-vm-' + vm.vm_setup.short_name + '-polybenchmarks-' + hardware_name(self)},
     vm_common.gate_vm_linux_amd64 + self.vm_gate_polybench_linux + {name: 'gate-vm-' + vm.vm_setup.short_name + '-polybench-' + hardware_name(self)},
   ],
 
