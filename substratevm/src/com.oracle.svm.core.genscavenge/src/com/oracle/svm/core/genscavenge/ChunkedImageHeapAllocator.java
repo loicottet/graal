@@ -285,4 +285,9 @@ final class FillerObjectDummyPartition implements ImageHeapPartition {
     public long getSize() {
         throw VMError.shouldNotReachHere();
     }
+
+    @Override
+    public boolean isFiller() {
+        return true;
+    }
 }

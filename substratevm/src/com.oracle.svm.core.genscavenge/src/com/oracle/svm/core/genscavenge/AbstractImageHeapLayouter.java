@@ -266,6 +266,11 @@ public abstract class AbstractImageHeapLayouter<T extends AbstractImageHeapLayou
         }
 
         @Override
+        public boolean isFiller() {
+            return false;
+        }
+
+        @Override
         public String toString() {
             return name;
         }

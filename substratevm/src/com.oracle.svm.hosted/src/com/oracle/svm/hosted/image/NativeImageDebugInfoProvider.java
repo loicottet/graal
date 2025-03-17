@@ -2592,7 +2592,7 @@ class NativeImageDebugInfoProvider implements DebugInfoProvider {
 
     private boolean acceptObjectInfo(ObjectInfo objectInfo) {
         /* This condition rejects filler partition objects. */
-        return (objectInfo.getPartition().getStartOffset() > 0);
+        return !objectInfo.getPartition().isFiller();
     }
 
     private DebugDataInfo createDebugDataInfo(ObjectInfo objectInfo) {
