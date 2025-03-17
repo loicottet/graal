@@ -305,23 +305,6 @@ final class InternalResourceRoots {
         return container.resolve("org.graalvm.polyglot");
     }
 
-<<<<<<< HEAD
-=======
-    static boolean isTraceInternalResourceEvents() {
-        /*
-         * Internal resources are utilized before the Engine is created; hence, we cannot leverage
-         * engine options and engine logger.
-         */
-        return Boolean.getBoolean("polyglotimpl.TraceInternalResources");
-    }
-
-    static void logInternalResourceEvent(String message, Object... args) {
-        if (isTraceInternalResourceEvents()) {
-            PolyglotEngineImpl.logFallback(String.format("[engine][resource] " + message + "%n", args));
-        }
-    }
-
->>>>>>> 8416b27b357 ([GR-59492] System.out/err usage in PolyglotLoggers.)
     private static void emitWarning(String message, Object... args) {
         PolyglotEngineImpl.logFallback(String.format(message + "%n", args));
     }

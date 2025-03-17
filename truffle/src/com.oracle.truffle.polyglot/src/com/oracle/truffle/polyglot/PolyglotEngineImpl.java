@@ -2281,52 +2281,6 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         }
     }
 
-<<<<<<< HEAD
-=======
-    void onEngineCollected() {
-        try {
-            logMissingClose();
-            ensureClosed(false, false);
-        } catch (PolyglotException pe) {
-            // Don't log cancel exception, it's expected
-            if (!pe.isExit() && !pe.isCancelled()) {
-                logCloseOnCollectedError(pe);
-            }
-        } catch (PolyglotContextImpl.ExitException | CancelExecution ee) {
-            // Don't log exit exception, it's expected
-        } catch (Throwable t) {
-            logCloseOnCollectedError(t);
-        }
-    }
-
-    private void logCloseOnCollectedError(Throwable exception) {
-        logCloseOnCollectedError(this, "Exception encountered while closing a garbage collected engine.", exception);
-    }
-
-    static void logCloseOnCollectedError(PolyglotEngineImpl engine, String reason, Throwable exception) {
-        switch (engine.getEngineOptionValues().get(PolyglotEngineOptions.CloseOnGCFailureAction)) {
-            case Ignore -> {
-            }
-            case Print -> {
-                StringWriter message = new StringWriter();
-                try (PrintWriter errWriter = new PrintWriter(message)) {
-                    errWriter.printf("""
-                                    [engine] WARNING: %s
-                                    To customize the behavior of this warning, use 'engine.CloseOnGCFailureAction' option or the 'polyglot.engine.CloseOnGCFailureAction' system property.
-                                    The accepted values are:
-                                      - Ignore:    Do not print this warning.
-                                      - Print:     Print this warning (default value).
-                                      - Throw:     Throw an exception instead of printing this warning.
-                                    """, reason);
-                    exception.printStackTrace(errWriter);
-                }
-                logFallback(message.toString());
-            }
-            case Throw -> throw new RuntimeException(reason, exception);
-        }
-    }
-
->>>>>>> 8416b27b357 ([GR-59492] System.out/err usage in PolyglotLoggers.)
     static final class StableLocalLocations {
 
         @CompilationFinal(dimensions = 1) final LocalLocation[] locations;
@@ -2392,42 +2346,6 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         return languageHomes;
     }
 
-<<<<<<< HEAD
-=======
-    private final AtomicBoolean warnedVirtualThreadSupport = new AtomicBoolean(false);
-
-    @SuppressWarnings("try")
-    void validateVirtualThreadCreation() {
-        if (!warnedVirtualThreadSupport.get() && warnedVirtualThreadSupport.compareAndSet(false, true)) {
-            try (AbstractPolyglotImpl.ThreadScope scope = impl.getRootImpl().createThreadScope()) {
-                var options = getEngineOptionValues();
-                boolean warnVirtualThreadSupport = options.get(PolyglotEngineOptions.WarnVirtualThreadSupport);
-
-                if (warnVirtualThreadSupport && !(Truffle.getRuntime() instanceof DefaultTruffleRuntime)) {
-                    if (!TruffleOptions.AOT) {
-                        getEngineLogger().warning("""
-                                        Using polyglot contexts on Java virtual threads on HotSpot is experimental in this release,
-                                        because access to caller frames in write or materialize mode is not yet supported on virtual threads (some tools and languages depend on that).
-                                        To disable this warning use the '--engine.WarnVirtualThreadSupport=false' option or the '-Dpolyglot.engine.WarnVirtualThreadSupport=false' system property.
-                                        """);
-                    } else {
-                        getEngineLogger().warning(
-                                        """
-                                                        Using polyglot contexts on Java virtual threads on Native Image currently uses one platform thread per VirtualThread.
-                                                        This will prevent creating many virtual threads and have different performance characteristics.
-                                                        You can either suppress this warning with the '--engine.WarnVirtualThreadSupport=false' option or the '-Dpolyglot.engine.WarnVirtualThreadSupport=false' system property,
-                                                        or use the default runtime (no JIT compilation of polyglot code) by passing -Dtruffle.UseFallbackRuntime=true when building the native image.
-                                                        Full VirtualThread support for Native Image together with polyglot contexts will be added in a future release.
-                                                        VirtualThread is fully supported with polyglot contexts in JVM mode.
-                                                        """);
-                    }
-                }
-            }
-        }
-
-        impl.getRootImpl().validateVirtualThreadCreation(getEngineOptionValues());
-    }
-
     /**
      * Logs a message when other logging mechanisms, such as {@link TruffleLogger} or the context's
      * error stream, are unavailable. This can occur, for instance, in the event of a log handler
@@ -2443,5 +2361,4 @@ final class PolyglotEngineImpl implements com.oracle.truffle.polyglot.PolyglotIm
         PrintStream err = System.err;
         err.println(message);
     }
->>>>>>> 8416b27b357 ([GR-59492] System.out/err usage in PolyglotLoggers.)
 }
