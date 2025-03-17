@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.core.genscavenge;
 
+import org.graalvm.compiler.nodes.NamedLocationIdentity;
 import org.graalvm.nativeimage.PinnedObject;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -31,8 +32,6 @@ import org.graalvm.word.Pointer;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.AbstractPinnedObjectSupport;
-
-import jdk.graal.compiler.nodes.NamedLocationIdentity;
 
 /** Support for pinning objects to a memory address with {@link PinnedObject}. */
 public final class PinnedObjectSupportImpl extends AbstractPinnedObjectSupport {
@@ -54,7 +53,7 @@ public final class PinnedObjectSupportImpl extends AbstractPinnedObjectSupport {
 
     @Uninterruptible(reason = "Ensure that pinned object counts and PinnedObjects are consistent.", callerMustBe = true)
     private static void modifyPinnedObjectCount(Object object, int delta) {
-        Pointer pinnedObjectCount = HeapChunk.getEnclosingHeapChunk(object).addressOfPinnedObjectCount();
+        Pointer pinnedObjectCount = (Pointer) HeapChunk.getEnclosingHeapChunk(object).addressOfPinnedObjectCount();
         int oldValue;
         do {
             oldValue = pinnedObjectCount.readInt(0);

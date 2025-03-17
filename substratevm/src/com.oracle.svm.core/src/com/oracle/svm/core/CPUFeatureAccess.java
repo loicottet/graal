@@ -29,7 +29,6 @@ import java.util.EnumSet;
 import org.graalvm.compiler.api.replacements.Fold;
 import org.graalvm.nativeimage.ImageSingletons;
 
-import jdk.graal.compiler.api.replacements.Fold;
 import jdk.vm.ci.code.Architecture;
 
 public interface CPUFeatureAccess {

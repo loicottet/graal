@@ -310,17 +310,8 @@ final class HeapChunkProvider {
         }
     }
 
-    Log report(Log log, boolean traceHeapChunks) {
-        log.string("Unused:").indent(true);
-        log.string("aligned: ").signed(bytesInUnusedAlignedChunks.get())
-                        .string("/")
-                        .signed(bytesInUnusedAlignedChunks.get().unsignedDivide(HeapParameters.getAlignedHeapChunkSize()));
-        if (traceHeapChunks) {
-            AlignedHeapChunk.AlignedHeader firstChunk = unusedAlignedChunks.get();
-            HeapChunkLogging.logChunks(log, firstChunk);
-        }
-        log.redent(false);
-        return log;
+    void logFreeChunks(Log log) {
+        HeapChunkLogging.logChunks(log, unusedAlignedChunks.get(), "F", false);
     }
 
     boolean walkHeapChunks(MemoryWalker.Visitor visitor) {

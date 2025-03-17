@@ -26,6 +26,8 @@ package com.oracle.svm.core.heap;
 
 import static com.oracle.svm.core.Uninterruptible.CALLED_FROM_UNINTERRUPTIBLE_CODE;
 
+import org.graalvm.compiler.api.replacements.Fold;
+import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.PinnedObject;
 import org.graalvm.nativeimage.Platform;
@@ -41,9 +43,6 @@ import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.hub.LayoutEncoding;
 import com.oracle.svm.core.jdk.UninterruptibleUtils.AtomicReference;
 import com.oracle.svm.core.thread.VMOperation;
-
-import jdk.graal.compiler.api.replacements.Fold;
-import jdk.graal.compiler.word.Word;
 
 public abstract class AbstractPinnedObjectSupport implements PinnedObjectSupport {
     private final AtomicReference<PinnedObjectImpl> pinnedObjects = new AtomicReference<>();
@@ -132,7 +131,7 @@ public abstract class AbstractPinnedObjectSupport implements PinnedObjectSupport
 
     @Uninterruptible(reason = CALLED_FROM_UNINTERRUPTIBLE_CODE, mayBeInlined = true)
     private static boolean needsPinning(Object object) {
-        return !SubstrateOptions.useEpsilonGC() && object != null && !Heap.getHeap().isInImageHeap(object);
+        return !SubstrateOptions.UseEpsilonGC.getValue() && object != null && !Heap.getHeap().isInImageHeap(object);
     }
 
     public static class PinnedObjectImpl implements PinnedObject {
@@ -171,9 +170,6 @@ public abstract class AbstractPinnedObjectSupport implements PinnedObjectSupport
 
         @Override
         public Pointer addressOfObject() {
-            if (!SubstrateOptions.PinnedObjectAddressing.getValue()) {
-                throw new UnsupportedOperationException("Pinned object addressing has been disabled.");
-            }
             assert open : "Should not call addressOfObject() on a closed PinnedObject.";
             return Word.objectToUntrackedPointer(referent);
         }

@@ -42,7 +42,6 @@ import com.oracle.svm.core.snippets.KnownIntrinsics;
 import com.oracle.svm.core.util.VMError;
 import com.oracle.svm.util.ReflectionUtil;
 
-import jdk.graal.compiler.api.replacements.Fold;
 import jdk.vm.ci.meta.ResolvedJavaMethod;
 
 /**

@@ -50,7 +50,6 @@ import org.graalvm.word.WordFactory;
 import com.oracle.svm.core.AlwaysInline;
 import com.oracle.svm.core.MemoryWalker;
 import com.oracle.svm.core.NeverInline;
-import com.oracle.svm.core.RuntimeAssertionsSupport;
 import com.oracle.svm.core.SubstrateGCOptions;
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.Uninterruptible;
@@ -106,6 +105,9 @@ import com.oracle.svm.core.util.VMError;
  * Garbage collector (incremental or complete) for {@link HeapImpl}.
  */
 public final class GCImpl implements GC {
+    private static final long K = 1024;
+    static final long M = K * K;
+
     private final GreyToBlackObjRefVisitor greyToBlackObjRefVisitor = new GreyToBlackObjRefVisitor();
     private final GreyToBlackObjectVisitor greyToBlackObjectVisitor = new GreyToBlackObjectVisitor(greyToBlackObjRefVisitor);
     private final BlackenImageHeapRootsVisitor blackenImageHeapRootsVisitor = new BlackenImageHeapRootsVisitor();
@@ -392,7 +394,6 @@ public final class GCImpl implements GC {
 
     private void printGCBefore(String cause) {
         Log verboseGCLog = Log.log();
-        HeapImpl heap = HeapImpl.getHeapImpl();
         sizeBefore = ((SubstrateGCOptions.PrintGC.getValue() || SerialGCOptions.PrintHeapShape.getValue()) ? getChunkBytes() : WordFactory.zero());
         if (SubstrateGCOptions.VerboseGC.getValue() && getCollectionEpoch().equal(0)) {
             verboseGCLog.string("[Heap policy parameters: ").newline();
@@ -416,7 +417,7 @@ public final class GCImpl implements GC {
             }
             verboseGCLog.string(" GC:").string(" before").string("  epoch: ").unsigned(getCollectionEpoch()).string("  cause: ").string(cause);
             if (SerialGCOptions.PrintHeapShape.getValue()) {
-                heap.report(verboseGCLog);
+                HeapImpl.getHeapImpl().logChunks(Log.log(), false);
             }
             verboseGCLog.string("]").newline();
         }
@@ -424,7 +425,6 @@ public final class GCImpl implements GC {
 
     private void printGCAfter(String cause) {
         Log verboseGCLog = Log.log();
-        HeapImpl heap = HeapImpl.getHeapImpl();
         if (SubstrateGCOptions.PrintGC.getValue() || SubstrateGCOptions.VerboseGC.getValue()) {
             if (SubstrateGCOptions.PrintGC.getValue()) {
                 Log printGCLog = Log.log();
@@ -455,7 +455,7 @@ public final class GCImpl implements GC {
                 verboseGCLog.string(getPolicy().getName());
                 verboseGCLog.string("  type: ").string(completeCollection ? "complete" : "incremental");
                 if (SerialGCOptions.PrintHeapShape.getValue()) {
-                    heap.report(verboseGCLog);
+                    HeapImpl.getHeapImpl().logChunks(Log.log(), false);
                 }
                 if (!SerialGCOptions.PrintGCTimes.getValue()) {
                     verboseGCLog.newline();
@@ -478,65 +478,8 @@ public final class GCImpl implements GC {
         HeapImpl heap = HeapImpl.getHeapImpl();
         YoungGeneration youngGen = heap.getYoungGeneration();
         OldGeneration oldGen = heap.getOldGeneration();
-        verbosePostCondition();
         assert youngGen.getEden().isEmpty() : "youngGen.getEden() should be empty after a collection.";
         assert oldGen.getToSpace().isEmpty() : "oldGen.getToSpace() should be empty after a collection.";
-    }
-
-    private static void verbosePostCondition() {
-        /*
-         * Note to self: I can get output similar to this *all the time* by running with
-         * -R:+VerboseGC -R:+PrintHeapShape -R:+TraceHeapChunks
-         */
-        final boolean forceForTesting = false;
-        if (runtimeAssertions() || forceForTesting) {
-            HeapImpl heap = HeapImpl.getHeapImpl();
-            YoungGeneration youngGen = heap.getYoungGeneration();
-            OldGeneration oldGen = heap.getOldGeneration();
-
-            Log log = Log.log();
-            if ((!youngGen.getEden().isEmpty()) || forceForTesting) {
-                log.string("[GCImpl.postcondition: Eden space should be empty after a collection.").newline();
-                /* Print raw fields before trying to walk the chunk lists. */
-                log.string("  These should all be 0:").newline();
-                log.string("    Eden space first AlignedChunk:   ").zhex(youngGen.getEden().getFirstAlignedHeapChunk()).newline();
-                log.string("    Eden space last  AlignedChunk:   ").zhex(youngGen.getEden().getLastAlignedHeapChunk()).newline();
-                log.string("    Eden space first UnalignedChunk: ").zhex(youngGen.getEden().getFirstUnalignedHeapChunk()).newline();
-                log.string("    Eden space last  UnalignedChunk: ").zhex(youngGen.getEden().getLastUnalignedHeapChunk()).newline();
-                youngGen.getEden().report(log, true).newline();
-                log.string("]").newline();
-            }
-            for (int i = 0; i < HeapParameters.getMaxSurvivorSpaces(); i++) {
-                if ((!youngGen.getSurvivorToSpaceAt(i).isEmpty()) || forceForTesting) {
-                    log.string("[GCImpl.postcondition: Survivor toSpace should be empty after a collection.").newline();
-                    /* Print raw fields before trying to walk the chunk lists. */
-                    log.string("  These should all be 0:").newline();
-                    log.string("    Survivor space ").signed(i).string(" first AlignedChunk:   ").zhex(youngGen.getSurvivorToSpaceAt(i).getFirstAlignedHeapChunk()).newline();
-                    log.string("    Survivor space ").signed(i).string(" last  AlignedChunk:   ").zhex(youngGen.getSurvivorToSpaceAt(i).getLastAlignedHeapChunk()).newline();
-                    log.string("    Survivor space ").signed(i).string(" first UnalignedChunk: ").zhex(youngGen.getSurvivorToSpaceAt(i).getFirstUnalignedHeapChunk()).newline();
-                    log.string("    Survivor space ").signed(i).string(" last  UnalignedChunk: ").zhex(youngGen.getSurvivorToSpaceAt(i).getLastUnalignedHeapChunk()).newline();
-                    youngGen.getSurvivorToSpaceAt(i).report(log, true).newline();
-                    log.string("]").newline();
-                }
-            }
-            if ((!oldGen.getToSpace().isEmpty()) || forceForTesting) {
-                log.string("[GCImpl.postcondition: oldGen toSpace should be empty after a collection.").newline();
-                /* Print raw fields before trying to walk the chunk lists. */
-                log.string("  These should all be 0:").newline();
-                log.string("    oldGen toSpace first AlignedChunk:   ").zhex(oldGen.getToSpace().getFirstAlignedHeapChunk()).newline();
-                log.string("    oldGen toSpace last  AlignedChunk:   ").zhex(oldGen.getToSpace().getLastAlignedHeapChunk()).newline();
-                log.string("    oldGen.toSpace first UnalignedChunk: ").zhex(oldGen.getToSpace().getFirstUnalignedHeapChunk()).newline();
-                log.string("    oldGen.toSpace last  UnalignedChunk: ").zhex(oldGen.getToSpace().getLastUnalignedHeapChunk()).newline();
-                oldGen.getToSpace().report(log, true).newline();
-                oldGen.getFromSpace().report(log, true).newline();
-                log.string("]").newline();
-            }
-        }
-    }
-
-    @Fold
-    static boolean runtimeAssertions() {
-        return RuntimeAssertionsSupport.singleton().desiredAssertionStatus(GCImpl.class);
     }
 
     @Fold
@@ -1121,14 +1064,14 @@ public final class GCImpl implements GC {
         Header<?> originalChunk = getChunk(pinned, isAligned);
         Space originalSpace = HeapChunk.getSpace(originalChunk);
         if (originalSpace.isFromSpace()) {
-        boolean promoted = false;
-        if (!completeCollection && originalSpace.getNextAgeForPromotion() < policy.getTenuringAge()) {
-            promoted = heap.getYoungGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
-            if (!promoted) {
-                accounting.onSurvivorOverflowed();
+            boolean promoted = false;
+            if (!completeCollection && originalSpace.getNextAgeForPromotion() < policy.getTenuringAge()) {
+                promoted = heap.getYoungGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
+                if (!promoted) {
+                    accounting.onSurvivorOverflowed();
+                }
             }
-        }
-        if (!promoted) {
+            if (!promoted) {
                 heap.getOldGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
             }
         }

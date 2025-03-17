@@ -70,7 +70,6 @@ import com.oracle.svm.core.heap.ReferenceHandlerThread;
 import com.oracle.svm.core.heap.ReferenceInternals;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 import com.oracle.svm.core.heap.RuntimeCodeInfoGCSupport;
-import com.oracle.svm.core.hub.LayoutEncoding;
 import com.oracle.svm.core.locks.VMCondition;
 import com.oracle.svm.core.locks.VMMutex;
 import com.oracle.svm.core.log.Log;
@@ -121,6 +120,7 @@ public final class HeapImpl extends Heap {
         this.runtimeCodeInfoGcSupport = new RuntimeCodeInfoGCSupportImpl();
         HeapParameters.initialize();
         DiagnosticThunkRegistry.singleton().register(new DumpHeapSettingsAndStatistics());
+        DiagnosticThunkRegistry.singleton().register(new DumpHeapUsage());
         DiagnosticThunkRegistry.singleton().register(new DumpGCPolicy());
         DiagnosticThunkRegistry.singleton().register(new DumpImageHeapInfo());
         DiagnosticThunkRegistry.singleton().register(new DumpChunkInfo());
@@ -270,21 +270,30 @@ public final class HeapImpl extends Heap {
         return getUsedBytes().add(getChunkProvider().getBytesInUnusedChunks());
     }
 
-    void report(Log log) {
-        report(log, SerialGCOptions.TraceHeapChunks.getValue());
+    void logUsage(Log log) {
+        youngGeneration.logUsage(log);
+        oldGeneration.logUsage(log);
     }
 
-    void report(Log log, boolean traceHeapChunks) {
-        log.string("Heap:").indent(true);
-        getYoungGeneration().report(log, traceHeapChunks).newline();
-        getOldGeneration().report(log, traceHeapChunks).newline();
-        getChunkProvider().report(log, traceHeapChunks).indent(false);
-    }
-    
     void logChunks(Log log, boolean allowUnsafe) {
         getYoungGeneration().logChunks(log, allowUnsafe);
         getOldGeneration().logChunks(log);
         getChunkProvider().logFreeChunks(log);
+    }
+
+    void logImageHeapPartitionBoundaries(Log log) {
+        log.string("Image heap boundaries:").indent(true);
+        imageHeapInfo.print(log);
+        log.indent(false);
+
+        if (AuxiliaryImageHeap.isPresent()) {
+            ImageHeapInfo auxHeapInfo = AuxiliaryImageHeap.singleton().getImageHeapInfo();
+            if (auxHeapInfo != null) {
+                log.string("Auxiliary image heap boundaries:").indent(true);
+                auxHeapInfo.print(log);
+                log.indent(false);
+            }
+        }
     }
 
     /** Log the zap values to make it easier to search for them. */
@@ -871,6 +880,21 @@ public final class HeapImpl extends Heap {
         }
     }
 
+    private static class DumpHeapUsage extends DiagnosticThunk {
+        @Override
+        public int maxInvocationCount() {
+            return 1;
+        }
+
+        @Override
+        @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while printing diagnostics.")
+        public void printDiagnostics(Log log, ErrorContext context, int maxDiagnosticLevel, int invocationCount) {
+            log.string("Heap usage:").indent(true);
+            HeapImpl.getHeapImpl().logUsage(log);
+            log.indent(false);
+        }
+    }
+
     private static final class DumpGCPolicy extends DiagnosticThunk {
         @Override
         public int maxInvocationCount() {
@@ -902,20 +926,7 @@ public final class HeapImpl extends Heap {
         @Override
         @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while printing diagnostics.")
         public void printDiagnostics(Log log, ErrorContext context, int maxDiagnosticLevel, int invocationCount) {
-            log.string("Image heap boundaries:").indent(true);
-            for (ImageHeapInfo info : HeapImpl.getImageHeapInfos()) {
-                info.print(log);
-            }
-            log.indent(false);
-
-            if (AuxiliaryImageHeap.isPresent()) {
-                ImageHeapInfo auxHeapInfo = AuxiliaryImageHeap.singleton().getImageHeapInfo();
-                if (auxHeapInfo != null) {
-                    log.string("Auxiliary image heap boundaries:").indent(true);
-                    auxHeapInfo.print(log);
-                    log.indent(false);
-                }
-            }
+            HeapImpl.getHeapImpl().logImageHeapPartitionBoundaries(log);
         }
     }
 

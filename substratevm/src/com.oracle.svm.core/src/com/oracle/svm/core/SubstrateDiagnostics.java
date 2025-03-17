@@ -90,6 +90,8 @@ import com.oracle.svm.core.stack.JavaFrameAnchors;
 import com.oracle.svm.core.stack.JavaStackWalker;
 import com.oracle.svm.core.stack.ThreadStackPrinter;
 import com.oracle.svm.core.stack.ThreadStackPrinter.StackFramePrintVisitor;
+import com.oracle.svm.core.stack.ThreadStackPrinter.Stage0StackFramePrintVisitor;
+import com.oracle.svm.core.stack.ThreadStackPrinter.Stage1StackFramePrintVisitor;
 import com.oracle.svm.core.thread.PlatformThreads;
 import com.oracle.svm.core.thread.VMOperation;
 import com.oracle.svm.core.thread.VMOperationControl;
@@ -108,7 +110,8 @@ public class SubstrateDiagnostics {
 
     private static final FastThreadLocalBytes<CCharPointer> threadOnlyAttachedForCrashHandler = FastThreadLocalFactory.createBytes(() -> 1, "SubstrateDiagnostics.threadOnlyAttachedForCrashHandler");
     private static final ImageCodeLocationInfoPrinter imageCodeLocationInfoPrinter = new ImageCodeLocationInfoPrinter();
-    private static final StackFramePrintVisitor stackFramePrinter = new StackFramePrintVisitor();
+    private static final Stage0StackFramePrintVisitor[] printVisitors = new Stage0StackFramePrintVisitor[]{new StackFramePrintVisitor(), new Stage1StackFramePrintVisitor(),
+                    new Stage0StackFramePrintVisitor()};
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public static void setOnlyAttachedForCrashHandler(IsolateThread thread) {
@@ -901,8 +904,9 @@ public class SubstrateDiagnostics {
         @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while printing diagnostics.")
         public void printDiagnostics(Log log, ErrorContext context, int maxDiagnosticLevel, int invocationCount) {
             log.string("Runtime information:").indent(true);
-            log.string("Isolate id: ").signed(Isolates.getIsolateId()).newline();
-            log.string("Heap base: ").zhex(KnownIntrinsics.heapBase()).newline();
+            if (SubstrateOptions.SpawnIsolates.getValue()) {
+                log.string("Heap base: ").zhex(KnownIntrinsics.heapBase()).newline();
+            }
 
             log.string("CPU cores (OS): ");
             if (SubstrateOptions.JNI.getValue()) {
@@ -978,8 +982,8 @@ public class SubstrateDiagnostics {
             Pointer sp = context.getStackPointer();
             CodePointer ip = context.getInstructionPointer();
 
-            log.string("Stacktrace for the failing thread ").zhex(CurrentIsolate.getCurrentThread()).string(" (A=AOT compiled, J=JIT compiled, D=deoptimized, i=inlined, C=native):").indent(true);
-            boolean success = ThreadStackPrinter.printStacktrace(sp, ip, stackFramePrinter.reset(invocationCount), log);
+            log.string("Stacktrace for the failing thread ").zhex(CurrentIsolate.getCurrentThread()).string(" (A=AOT compiled, J=JIT compiled, D=deoptimized, i=inlined):").indent(true);
+            boolean success = ThreadStackPrinter.printStacktrace(sp, ip, printVisitors[invocationCount - 1].reset(), log);
 
             if (!success && DiagnosticLevel.unsafeOperationsAllowed(maxDiagnosticLevel)) {
                 /*
@@ -1010,7 +1014,7 @@ public class SubstrateDiagnostics {
             Pointer sp = returnAddressPos.add(FrameAccess.returnAddressSize());
             log.newline();
             log.string("Starting the stack walk in a possible caller (sp + ").unsigned(sp.subtract(originalSp)).string("):").newline();
-            ThreadStackPrinter.printStacktrace(sp, possibleIp, stackFramePrinter.reset(invocationCount), log);
+            ThreadStackPrinter.printStacktrace(sp, possibleIp, printVisitors[invocationCount - 1].reset(), log);
         }
     }
 
@@ -1057,7 +1061,7 @@ public class SubstrateDiagnostics {
 
         private static void printStackTrace(Log log, IsolateThread vmThread, int invocationCount) {
             log.string("Stacktrace:").indent(true);
-            JavaStackWalker.walkThread(vmThread, stackFramePrinter.reset(invocationCount), log);
+            JavaStackWalker.walkThread(vmThread, printVisitors[invocationCount - 1].reset(), log);
             log.redent(false);
         }
     }

@@ -27,19 +27,18 @@ package com.oracle.svm.core.genscavenge;
 import org.graalvm.nativeimage.IsolateThread;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
+import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
 
-import com.oracle.svm.core.MemoryWalker;
 import com.oracle.svm.core.AlwaysInline;
+import com.oracle.svm.core.MemoryWalker;
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.genscavenge.GCImpl.ChunkReleaser;
 import com.oracle.svm.core.heap.ObjectVisitor;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.thread.VMOperation;
 import com.oracle.svm.core.thread.VMThreads;
-
-import jdk.graal.compiler.word.Word;
 
 public final class YoungGeneration extends Generation {
     private final Space eden;
@@ -52,7 +51,7 @@ public final class YoungGeneration extends Generation {
     @Platforms(Platform.HOSTED_ONLY.class)
     YoungGeneration(String name) {
         super(name);
-        this.eden = new Space("edenSpace", true, 0);
+        this.eden = new Space("edenSpace", "E", true, 0);
         this.maxSurvivorSpaces = HeapParameters.getMaxSurvivorSpaces();
         this.survivorFromSpaces = new Space[maxSurvivorSpaces];
         this.survivorToSpaces = new Space[maxSurvivorSpaces];
@@ -60,8 +59,8 @@ public final class YoungGeneration extends Generation {
         this.survivorsToSpacesAccounting = new ChunksAccounting();
         for (int i = 0; i < maxSurvivorSpaces; i++) {
             int age = i + 1;
-            this.survivorFromSpaces[i] = new Space("Survivor-" + age + " From", true, age);
-            this.survivorToSpaces[i] = new Space("Survivor-" + age + " To", false, age, survivorsToSpacesAccounting);
+            this.survivorFromSpaces[i] = new Space("Survivor-" + age + " From", "S" + age, true, age);
+            this.survivorToSpaces[i] = new Space("Survivor-" + age + " To", "S" + age, false, age, survivorsToSpacesAccounting);
             this.survivorGreyObjectsWalkers[i] = new GreyObjectsWalker();
         }
     }
@@ -101,21 +100,12 @@ public final class YoungGeneration extends Generation {
     }
 
     @Override
-    public Log report(Log log, boolean traceHeapChunks) {
-        log.string("Young generation: ").indent(true);
-        log.string("Eden: ").indent(true);
-        getEden().report(log, traceHeapChunks);
-        log.redent(false).newline();
-        log.string("Survivors: ").indent(true);
+    public void logUsage(Log log) {
+        getEden().logUsage(log, true);
         for (int i = 0; i < maxSurvivorSpaces; i++) {
-            this.survivorFromSpaces[i].report(log, traceHeapChunks).newline();
-            this.survivorToSpaces[i].report(log, traceHeapChunks);
-            if (i < maxSurvivorSpaces - 1) {
-                log.newline();
-            }
+            this.survivorFromSpaces[i].logUsage(log, false);
+            this.survivorToSpaces[i].logUsage(log, false);
         }
-        log.redent(false).redent(false);
-        return log;
     }
 
     public void logChunks(Log log, boolean allowUnsafe) {
@@ -349,6 +339,16 @@ public final class YoungGeneration extends Generation {
         }
         return HeapImpl.getChunkProvider().produceAlignedChunk();
     }
+
+    boolean isInSpace(Pointer ptr) {
+        if (getEden().contains(ptr)) {
+            return true;
+        }
+        for (int i = 0; i < getMaxSurvivorSpaces(); i++) {
+            if (getSurvivorFromSpaceAt(i).contains(ptr)) {
+                return true;
+            }
+            if (getSurvivorToSpaceAt(i).contains(ptr)) {
                 return true;
             }
         }
@@ -364,4 +364,9 @@ public final class YoungGeneration extends Generation {
                 return true;
             }
             if (getSurvivorToSpaceAt(i).printLocationInfo(log, ptr)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
