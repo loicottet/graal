@@ -860,7 +860,6 @@ public final class NativeImageHeap implements ImageHeap {
             }
             return result.toString();
         }
-
     }
 
     protected static final class Phase {
