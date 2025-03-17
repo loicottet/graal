@@ -182,8 +182,8 @@ public final class Space {
     }
 
     public void logChunks(Log log) {
-        HeapChunkLogging.logChunks(log, getFirstAlignedHeapChunk(), shortName, isFromSpace);
-        HeapChunkLogging.logChunks(log, getFirstUnalignedHeapChunk(), shortName, isFromSpace);
+        HeapChunkLogging.logChunks(log, getFirstAlignedHeapChunk(), shortName, !isFromSpace);
+        HeapChunkLogging.logChunks(log, getFirstUnalignedHeapChunk(), shortName, !isFromSpace);
     }
 
     /**
@@ -585,6 +585,27 @@ public final class Space {
         return result;
     }
 
+    boolean contains(Pointer p) {
+        AlignedHeapChunk.AlignedHeader aChunk = getFirstAlignedHeapChunk();
+        while (aChunk.isNonNull()) {
+            Pointer start = AlignedHeapChunk.getObjectsStart(aChunk);
+            if (start.belowOrEqual(p) && p.belowThan(HeapChunk.getTopPointer(aChunk))) {
+                return true;
+            }
+            aChunk = HeapChunk.getNext(aChunk);
+        }
+
+        UnalignedHeapChunk.UnalignedHeader uChunk = getFirstUnalignedHeapChunk();
+        while (uChunk.isNonNull()) {
+            Pointer start = UnalignedHeapChunk.getObjectStart(uChunk);
+            if (start.belowOrEqual(p) && p.belowThan(HeapChunk.getTopPointer(uChunk))) {
+                return true;
+            }
+            uChunk = HeapChunk.getNext(uChunk);
+        }
+        return false;
+    }
+
     public boolean printLocationInfo(Log log, Pointer p) {
         AlignedHeapChunk.AlignedHeader aChunk = getFirstAlignedHeapChunk();
         while (aChunk.isNonNull()) {
@@ -609,7 +630,7 @@ public final class Space {
     }
 
     private void printChunkInfo(Log log, HeapChunk.Header<?> chunk, String chunkType, boolean unusablePart) {
-        String toSpace = isToSpace ? "-T" : "";
+        String toSpace = isFromSpace ? "" : "-T";
         String unusable = unusablePart ? "unusable part of " : "";
         log.string("points into ").string(unusable).string(chunkType).string(" chunk ").zhex(chunk).spaces(1);
         log.string("(").string(getShortName()).string(toSpace).string(")");

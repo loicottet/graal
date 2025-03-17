@@ -1069,14 +1069,14 @@ public final class GCImpl implements GC {
         Header<?> originalChunk = getChunk(pinned, isAligned);
         Space originalSpace = HeapChunk.getSpace(originalChunk);
         if (originalSpace.isFromSpace()) {
-        boolean promoted = false;
-        if (!completeCollection && originalSpace.getNextAgeForPromotion() < policy.getTenuringAge()) {
-            promoted = heap.getYoungGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
-            if (!promoted) {
-                accounting.onSurvivorOverflowed();
+            boolean promoted = false;
+            if (!completeCollection && originalSpace.getNextAgeForPromotion() < policy.getTenuringAge()) {
+                promoted = heap.getYoungGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
+                if (!promoted) {
+                    accounting.onSurvivorOverflowed();
+                }
             }
-        }
-        if (!promoted) {
+            if (!promoted) {
                 heap.getOldGeneration().promoteChunk(originalChunk, isAligned, originalSpace);
             }
         }

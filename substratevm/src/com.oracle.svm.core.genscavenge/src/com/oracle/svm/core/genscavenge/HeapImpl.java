@@ -71,7 +71,6 @@ import com.oracle.svm.core.heap.ReferenceInternals;
 import com.oracle.svm.core.heap.RestrictHeapAccess;
 import com.oracle.svm.core.heap.RuntimeCodeInfoGCSupport;
 import com.oracle.svm.core.hub.DynamicHub;
-import com.oracle.svm.core.hub.LayoutEncoding;
 import com.oracle.svm.core.locks.VMCondition;
 import com.oracle.svm.core.locks.VMMutex;
 import com.oracle.svm.core.log.Log;
@@ -903,9 +902,7 @@ public final class HeapImpl extends Heap {
         @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while printing diagnostics.")
         public void printDiagnostics(Log log, ErrorContext context, int maxDiagnosticLevel, int invocationCount) {
             log.string("Image heap boundaries:").indent(true);
-            for (ImageHeapInfo info : HeapImpl.getImageHeapInfos()) {
-                info.print(log);
-            }
+            HeapImpl.getImageHeapInfo().print(log);
             log.indent(false);
 
             if (AuxiliaryImageHeap.isPresent()) {

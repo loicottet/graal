@@ -24,6 +24,7 @@
  */
 package com.oracle.svm.core.genscavenge;
 
+import org.graalvm.compiler.nodes.NamedLocationIdentity;
 import org.graalvm.nativeimage.PinnedObject;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
@@ -31,8 +32,6 @@ import org.graalvm.word.Pointer;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.AbstractPinnedObjectSupport;
-
-import jdk.graal.compiler.nodes.NamedLocationIdentity;
 
 /** Support for pinning objects to a memory address with {@link PinnedObject}. */
 public final class PinnedObjectSupportImpl extends AbstractPinnedObjectSupport {

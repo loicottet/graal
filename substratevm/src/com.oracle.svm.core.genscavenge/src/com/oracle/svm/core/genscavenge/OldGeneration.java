@@ -29,6 +29,7 @@ import static org.graalvm.compiler.nodes.extended.BranchProbabilityNode.probabil
 
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
+import org.graalvm.word.Pointer;
 import org.graalvm.word.UnsignedWord;
 
 import com.oracle.svm.core.AlwaysInline;
@@ -125,15 +126,14 @@ public final class OldGeneration extends Generation {
         getToSpace().logUsage(log, false);
     }
 
-    @Override
     public void logChunks(Log log) {
         getFromSpace().logChunks(log);
         getToSpace().logChunks(log);
     }
 
-    abstract boolean printLocationInfo(Log log, Pointer ptr);
-
-    abstract void logChunks(Log log);
+    boolean printLocationInfo(Log log, Pointer ptr) {
+        return fromSpace.printLocationInfo(log, ptr) || toSpace.printLocationInfo(log, ptr);
+    }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     Space getFromSpace() {

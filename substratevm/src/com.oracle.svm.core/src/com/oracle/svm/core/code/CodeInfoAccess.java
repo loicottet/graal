@@ -44,7 +44,6 @@ import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.thread.VMOperation;
 import com.oracle.svm.core.util.VMError;
 
-import jdk.graal.compiler.word.Word;
 /**
  * Provides functionality to query information about a unit of compiled code from a {@link CodeInfo}
  * object. This helper class is necessary to ensure that {@link CodeInfo} objects are used
@@ -372,12 +371,7 @@ public final class CodeInfoAccess {
      */
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public static boolean isAOTImageCodeSlow(CodeInfo info) {
-        for (CodeInfo imageCodeInfo = CodeInfoTable.getFirstImageCodeInfo(); imageCodeInfo.isNonNull(); imageCodeInfo = getNextImageCodeInfo(imageCodeInfo)) {
-            if (info == imageCodeInfo) {
-                return true;
-            }
-        }
-        return false;
+        return info == CodeInfoTable.getImageCodeInfo();
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
