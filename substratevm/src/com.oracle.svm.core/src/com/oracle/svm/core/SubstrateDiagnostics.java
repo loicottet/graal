@@ -27,8 +27,8 @@ package com.oracle.svm.core;
 import static com.oracle.svm.core.Uninterruptible.CALLED_FROM_UNINTERRUPTIBLE_CODE;
 import static com.oracle.svm.core.option.RuntimeOptionKey.RuntimeOptionKeyFlag.RelevantForCompilationIsolates;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.graalvm.collections.EconomicMap;
 import org.graalvm.compiler.api.replacements.Fold;
@@ -56,6 +56,11 @@ import org.graalvm.word.PointerBase;
 import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
 
+import com.oracle.svm.core.SubstrateDiagnostics.DiagnosticThunkRegistry;
+import com.oracle.svm.core.SubstrateDiagnostics.DumpCodeCacheHistory;
+import com.oracle.svm.core.SubstrateDiagnostics.DumpDeoptStubPointer;
+import com.oracle.svm.core.SubstrateDiagnostics.DumpRecentDeoptimizations;
+import com.oracle.svm.core.SubstrateDiagnostics.DumpRuntimeCodeInfoMemory;
 import com.oracle.svm.core.c.NonmovableArrays;
 import com.oracle.svm.core.code.CodeInfo;
 import com.oracle.svm.core.code.CodeInfoAccess;
@@ -69,7 +74,9 @@ import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.deopt.DeoptimizationSupport;
 import com.oracle.svm.core.deopt.DeoptimizedFrame;
 import com.oracle.svm.core.deopt.Deoptimizer;
+import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredImageSingleton;
+import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.graal.RuntimeCompilation;
 import com.oracle.svm.core.graal.stackvalue.UnsafeStackValue;
 import com.oracle.svm.core.heap.Heap;
@@ -100,6 +107,7 @@ import com.oracle.svm.core.threadlocal.FastThreadLocalBytes;
 import com.oracle.svm.core.threadlocal.FastThreadLocalFactory;
 import com.oracle.svm.core.threadlocal.VMThreadLocalInfos;
 import com.oracle.svm.core.util.CounterSupport;
+import com.oracle.svm.core.util.ImageHeapList;
 import com.oracle.svm.core.util.TimeUtils;
 import com.oracle.svm.core.util.VMError;
 
@@ -704,7 +712,7 @@ public class SubstrateDiagnostics {
         }
     }
 
-    private static class DumpDeoptStubPointer extends DiagnosticThunk {
+    static class DumpDeoptStubPointer extends DiagnosticThunk {
         @Override
         public int maxInvocationCount() {
             return 1;
@@ -821,7 +829,7 @@ public class SubstrateDiagnostics {
         }
     }
 
-    private static class DumpCodeCacheHistory extends DiagnosticThunk {
+    static class DumpCodeCacheHistory extends DiagnosticThunk {
         @Override
         public int maxInvocationCount() {
             return 2;
@@ -835,7 +843,7 @@ public class SubstrateDiagnostics {
         }
     }
 
-    private static class DumpRuntimeCodeInfoMemory extends DiagnosticThunk {
+    static class DumpRuntimeCodeInfoMemory extends DiagnosticThunk {
         @Override
         public int maxInvocationCount() {
             return 3;
@@ -850,7 +858,7 @@ public class SubstrateDiagnostics {
         }
     }
 
-    private static class DumpRecentDeoptimizations extends DiagnosticThunk {
+    static class DumpRecentDeoptimizations extends DiagnosticThunk {
         @Override
         public int maxInvocationCount() {
             return 1;
@@ -1202,11 +1210,15 @@ public class SubstrateDiagnostics {
     }
 
     public static class DiagnosticThunkRegistry {
-        private DiagnosticThunk[] diagnosticThunks;
+        @Platforms(Platform.HOSTED_ONLY.class) //
+        final int runtimeCompilationPosition;
+
+        private final List<DiagnosticThunk> thunks = ImageHeapList.create(DiagnosticThunk.class);
         private int[] initialInvocationCount;
 
         @Fold
         public static synchronized DiagnosticThunkRegistry singleton() {
+            /* The registry is already used very early during the image build. */
             if (!ImageSingletons.contains(DiagnosticThunkRegistry.class)) {
                 ImageSingletons.add(DiagnosticThunkRegistry.class, new DiagnosticThunkRegistry());
             }
@@ -1215,7 +1227,6 @@ public class SubstrateDiagnostics {
 
         @Platforms(Platform.HOSTED_ONLY.class)
         DiagnosticThunkRegistry() {
-            ArrayList<DiagnosticThunk> thunks = new ArrayList<>();
             thunks.add(new DumpRegisters());
             thunks.add(new DumpInstructions());
             thunks.add(new DumpTopOfCurrentThreadStack());
@@ -1233,34 +1244,38 @@ public class SubstrateDiagnostics {
                 thunks.add(new DumpCommandLine());
             }
             thunks.add(new DumpCounters());
-            if (RuntimeCompilation.isEnabled()) {
-                thunks.add(new DumpCodeCacheHistory());
-                thunks.add(new DumpRuntimeCodeInfoMemory());
-                thunks.add(new DumpDeoptStubPointer());
-                thunks.add(new DumpRecentDeoptimizations());
-            }
 
-            this.diagnosticThunks = thunks.toArray(new DiagnosticThunk[0]);
-            this.initialInvocationCount = new int[diagnosticThunks.length];
-            Arrays.fill(initialInvocationCount, 1);
+            resizeInitialInvocationCount();
+            this.runtimeCompilationPosition = thunks.size();
         }
 
         @Platforms(Platform.HOSTED_ONLY.class)
         public synchronized void register(DiagnosticThunk diagnosticThunk) {
-            diagnosticThunks = Arrays.copyOf(diagnosticThunks, diagnosticThunks.length + 1);
-            diagnosticThunks[diagnosticThunks.length - 1] = diagnosticThunk;
+            thunks.add(diagnosticThunk);
+            resizeInitialInvocationCount();
+        }
 
-            initialInvocationCount = Arrays.copyOf(initialInvocationCount, initialInvocationCount.length + 1);
-            initialInvocationCount[initialInvocationCount.length - 1] = 1;
+        @Platforms(Platform.HOSTED_ONLY.class)
+        public synchronized void register(int insertPos, DiagnosticThunk... extraThunks) {
+            for (int i = 0; i < extraThunks.length; i++) {
+                thunks.add(insertPos + i, extraThunks[i]);
+            }
+            resizeInitialInvocationCount();
+        }
+
+        @Platforms(Platform.HOSTED_ONLY.class)
+        private void resizeInitialInvocationCount() {
+            initialInvocationCount = new int[thunks.size()];
+            Arrays.fill(initialInvocationCount, 1);
         }
 
         @Fold
         int size() {
-            return diagnosticThunks.length;
+            return thunks.size();
         }
 
         DiagnosticThunk getThunk(int index) {
-            return diagnosticThunks[index];
+            return thunks.get(index);
         }
 
         int getInitialInvocationCount(int index) {
@@ -1328,6 +1343,24 @@ public class SubstrateDiagnostics {
         @Uninterruptible(reason = CALLED_FROM_UNINTERRUPTIBLE_CODE, mayBeInlined = true)
         public static boolean implicitExceptionWithoutStacktraceIsFatal() {
             return singleton().implicitExceptionWithoutStacktraceIsFatal;
+        }
+    }
+}
+
+@AutomaticallyRegisteredFeature
+class SubstrateDiagnosticsFeature implements InternalFeature {
+    /**
+     * {@link RuntimeCompilation#isEnabled()} can't be executed in the
+     * {@link DiagnosticThunkRegistry} constructor because the feature registration is not
+     * necessarily finished. So, we need to do it at a later point in time.
+     */
+    @Override
+    public void afterRegistration(AfterRegistrationAccess access) {
+        DiagnosticThunkRegistry registry = DiagnosticThunkRegistry.singleton();
+        if (RuntimeCompilation.isEnabled()) {
+            int pos = registry.runtimeCompilationPosition;
+            SubstrateDiagnostics.DiagnosticThunk[] thunks = {new DumpCodeCacheHistory(), new DumpRuntimeCodeInfoMemory(), new DumpDeoptStubPointer(), new DumpRecentDeoptimizations()};
+            registry.register(pos, thunks);
         }
     }
 }
