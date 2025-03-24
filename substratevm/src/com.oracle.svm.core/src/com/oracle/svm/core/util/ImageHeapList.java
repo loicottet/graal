@@ -49,7 +49,6 @@ import com.oracle.svm.core.Uninterruptible;
  * image build time. Sorting happens at image build time, but does not affect the list that users
  * are adding to at image build time.
  */
-@Platforms(Platform.HOSTED_ONLY.class) //
 public final class ImageHeapList {
 
     @Platforms(Platform.HOSTED_ONLY.class) //
@@ -63,6 +62,7 @@ public final class ImageHeapList {
         return new HostedImageHeapList<>(elementClass, comparator);
     }
 
+    @Platforms(Platform.HOSTED_ONLY.class) //
     private ImageHeapList() {
     }
 
@@ -134,26 +134,27 @@ public final class ImageHeapList {
             return hostedList.size();
         }
     }
-}
 
-final class RuntimeImageHeapList<E> extends AbstractList<E> {
+    public static final class RuntimeImageHeapList<E> extends AbstractList<E> {
 
-    E[] elementData;
+        E[] elementData;
 
-    @Platforms(Platform.HOSTED_ONLY.class)
-    RuntimeImageHeapList(E[] elementData) {
-        this.elementData = elementData;
+        @Platforms(Platform.HOSTED_ONLY.class)
+        RuntimeImageHeapList(E[] elementData) {
+            this.elementData = elementData;
+        }
+
+        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+        @Override
+        public E get(int index) {
+            return elementData[index];
+        }
+
+        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+        @Override
+        public int size() {
+            return elementData.length;
+        }
     }
 
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    @Override
-    public E get(int index) {
-        return elementData[index];
-    }
-
-    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    @Override
-    public int size() {
-        return elementData.length;
-    }
 }

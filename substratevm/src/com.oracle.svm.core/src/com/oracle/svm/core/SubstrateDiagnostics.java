@@ -1272,7 +1272,7 @@ public class SubstrateDiagnostics {
         }
 
         DiagnosticThunk getThunk(int index) {
-            return thunks.get(index);
+            return ((ImageHeapList.RuntimeImageHeapList<DiagnosticThunk>) thunks).get(index);
         }
 
         int getInitialInvocationCount(int index) {
