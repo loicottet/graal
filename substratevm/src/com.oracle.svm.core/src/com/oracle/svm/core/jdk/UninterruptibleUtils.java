@@ -24,6 +24,8 @@
  */
 package com.oracle.svm.core.jdk;
 
+import static com.oracle.svm.core.Uninterruptible.CALLED_FROM_UNINTERRUPTIBLE_CODE;
+
 import org.graalvm.word.Pointer;
 import org.graalvm.word.PointerBase;
 import org.graalvm.word.UnsignedWord;
@@ -626,5 +628,40 @@ public class UninterruptibleUtils {
     public interface CharReplacer {
         @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
         char replace(char val);
+    }
+
+    public static final class ReplaceDotWithSlash implements CharReplacer {
+        @Override
+        @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+        public char replace(char ch) {
+            if (ch == '.') {
+                return '/';
+            }
+            return ch;
+        }
+    }
+
+    public static class CodeUtil {
+        @Uninterruptible(reason = CALLED_FROM_UNINTERRUPTIBLE_CODE, mayBeInlined = true)
+        public static long signExtend(long value, int inputBits) {
+            if (inputBits < 64) {
+                if ((value >>> (inputBits - 1) & 1) == 1) {
+                    return value | (-1L << inputBits);
+                } else {
+                    return value & ~(-1L << inputBits);
+                }
+            } else {
+                return value;
+            }
+        }
+
+        @Uninterruptible(reason = CALLED_FROM_UNINTERRUPTIBLE_CODE, mayBeInlined = true)
+        public static long zeroExtend(long value, int inputBits) {
+            if (inputBits < 64) {
+                return value & ~(-1L << inputBits);
+            } else {
+                return value;
+            }
+        }
     }
 }
