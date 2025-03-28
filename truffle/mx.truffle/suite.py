@@ -115,9 +115,44 @@ suite = {
       "license": ["MIT"],
     },
 
-    "TRUFFLE_ASM_9.5" : {
-      "digest" : "sha512:7a49aaa0c4b513ca54ce684a74a3848ba4caf486320125f08cb8872720dc1e789538729f45c46d6ccf1b1ea54f7c3770dc9682d13a3f1813a348168ee5c40b82",
-      "urls": ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/com.oracle.truffle.api.impl.asm-9.5.0.jar"],
+    "TRUFFLE_ASM_9.7.1" : {
+      "digest" : "sha512:e677171df27f646c84f078d5a6256a84c871c0b02088953f204c424f61ad453fc52726370fc3f5bd5e6ba6bf70d4c0c735d09a5c3e298db289ae4c9e628b4c57",
+      "urls": ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/com.oracle.truffle.api.impl.asm-9.7.1.jar"],
+    },
+
+    "ASM_9.7.1": {
+      "digest": "sha512:4767b01603dad5c79cc1e2b5f3722f72b1059d928f184f446ba11badeb1b381b3a3a9a801cc43d25d396df950b09d19597c73173c411b1da890de808b94f1f50",
+      "sourceDigest": "sha512:d7c0de5912d04949a3d06cad366ff35a877da2682d9c74579625d62686032ea9349aff6102b17f92e9ec7eb4e9b1cd906b649c6a3ac798bfb9e31e5425de009d",
+      "maven": {
+        "groupId": "org.ow2.asm",
+        "artifactId": "asm",
+        "version": "9.7.1",
+      },
+      "license": "BSD-new",
+    },
+
+    "ASM_TREE_9.7.1": {
+      "digest": "sha512:e55008c392fdd35e95d3404766b12dd4b46e13d5c362fcd0ab42a65751a82737eaf0ebc857691d1916190d34407adfde4437615d69c278785416fd911e00978d",
+      "sourceDigest": "sha512:3cea80bc7b55679dfa3d2065c6cb6951007cc7817082e9fcf4c5e3cdc073c22eddf7c7899cff60b1092049ec9038e8d3aa9a8828ef731739bda8b5afcec30e86",
+      "maven": {
+        "groupId": "org.ow2.asm",
+        "artifactId": "asm-tree",
+        "version": "9.7.1",
+      },
+      "dependencies" : ["ASM_9.7.1"],
+      "license": "BSD-new",
+    },
+
+    "ASM_COMMONS_9.7.1": {
+      "digest": "sha512:81daf5765e387e6aeec5d45c4b9e4e1b471fb4f350931e5a214845c7c657a2142768f6902765e49c0ce2c595962e5d008883cba2e4a40c4bdce8f2e92518d2db",
+      "sourceDigest": "sha512:dea8a2f871024210980821dc06c6796a3fca58293f650614275a086aaf9e2f45066a128f434dadabb85162c52796e99c863a6838e851ec02d6d97c603ed5a6d9",
+      "maven": {
+        "groupId": "org.ow2.asm",
+        "artifactId": "asm-commons",
+        "version": "9.7.1",
+      },
+      "dependencies" : ["ASM_9.7.1", "ASM_TREE_9.7.1"],
+      "license": "BSD-new",
     },
 
     "ICU4J" : {
@@ -254,7 +289,7 @@ suite = {
       "dependencies" : [
         "sdk:GRAAL_SDK",
         "com.oracle.truffle.api.exception",
-        "truffle:TRUFFLE_ASM_9.5",
+        "truffle:TRUFFLE_ASM_9.7.1",
       ],
       "requires" : [
         "java.sql",
@@ -564,7 +599,7 @@ suite = {
       "sourceDirs" : ["src"],
       "dependencies" : [
         "com.oracle.truffle.api",
-        "truffle:TRUFFLE_ASM_9.5",
+        "truffle:TRUFFLE_ASM_9.7.1",
       ],
       "requires" : [
         "jdk.unsupported", # sun.misc.Unsafe
@@ -982,7 +1017,6 @@ suite = {
       "jacoco" : "exclude",
     },
    },
-
   "licenses" : {
     "UPL" : {
       "name" : "Universal Permissive License, Version 1.0",
