@@ -33,7 +33,6 @@ import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.UnmanagedMemory;
 import org.graalvm.nativeimage.impl.UnmanagedMemorySupport;
 import org.graalvm.nativeimage.Platform;
-import org.graalvm.nativeimage.StackValue;
 import org.graalvm.nativeimage.c.struct.SizeOf;
 import org.graalvm.nativeimage.c.type.CCharPointer;
 import org.graalvm.nativeimage.c.type.CIntPointer;
@@ -43,6 +42,7 @@ import org.graalvm.word.PointerBase;
 import org.graalvm.word.SignedWord;
 import org.graalvm.word.UnsignedWord;
 import org.graalvm.word.WordFactory;
+import org.graalvm.word.Pointer;
 
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.SubstrateUtil;
@@ -310,15 +310,17 @@ public class PosixUtils {
             bufSize = 1024;
         }
 
-        /* Retrieve the username and copy it to a String object. */
-        CCharPointer pwBuf = ImageSingletons.lookup(UnmanagedMemorySupport.class).malloc(WordFactory.unsigned(bufSize));
-        if (pwBuf.isNull()) {
+        /* Does not use StackValue because it is not safe to use in virtual threads. */
+        UnsignedWord allocSize = WordFactory.unsigned(SizeOf.get(passwdPointer.class) + SizeOf.get(passwd.class) + bufSize);
+        Pointer alloc = ImageSingletons.lookup(UnmanagedMemorySupport.class).malloc(allocSize);
+        if (alloc.isNull()) {
             return null;
         }
 
         try {
-            passwd pwent = StackValue.get(passwd.class);
-            passwdPointer p = StackValue.get(passwdPointer.class);
+            passwdPointer p = (passwdPointer) alloc;
+            passwd pwent = (passwd) ((Pointer) p).add(SizeOf.get(passwdPointer.class));
+            CCharPointer pwBuf = (CCharPointer) ((Pointer) pwent).add(SizeOf.get(passwd.class));
             int code = Pwd.getpwuid_r(uid, pwent, pwBuf, WordFactory.unsigned(bufSize), p);
             if (code != 0) {
                 return null;
@@ -336,7 +338,7 @@ public class PosixUtils {
 
             return CTypeConversion.toJavaString(pwName);
         } finally {
-            UnmanagedMemory.free(pwBuf);
+            UnmanagedMemory.free(alloc);
         }
     }
 }
