@@ -1136,7 +1136,7 @@ public class NativeImage {
          * only allow inlining when JIT compiling after n invocations. PROFILE_GWT is used to
          * profile "guard with test" method handles and speculate on a constant guard value, making
          * the other branch statically unreachable for JIT compilation.
-         * 
+         *
          * Both are used for example in the implementation of record hashCode/equals methods. We
          * disable this behavior in the image builder because for AOT compilation, profiling and
          * speculation are never useful. Instead, it prevents optimizing the method handles for AOT
@@ -1171,7 +1171,11 @@ public class NativeImage {
 
         mainClass = getHostedOptionFinalArgumentValue(imageBuilderArgs, oHClass);
         buildExecutable = imageBuilderArgs.stream().noneMatch(arg -> arg.startsWith(oHEnableSharedLibraryFlagPrefix));
-        staticExecutable = imageBuilderArgs.stream().anyMatch(arg -> arg.contains(oHEnableStaticExecutable));
+        boolean staticExecutable = imageBuilderArgs.stream().anyMatch(arg -> arg.contains(oHEnableStaticExecutable));
+        if (useBundle() && bundleSupport.useContainer && staticExecutable) {
+            showMessage(BundleSupport.BUNDLE_INFO_MESSAGE_PREFIX + "Skipping containerized build, not supported for --static.");
+            bundleSupport.useContainer = false;
+        }
         boolean listModules = imageBuilderArgs.stream().anyMatch(arg -> arg.contains(oH + "+" + "ListModules"));
         printFlags |= imageBuilderArgs.stream().anyMatch(arg -> arg.matches("-H:MicroArchitecture(@[^=]*)?=list"));
 
@@ -1495,7 +1499,6 @@ public class NativeImage {
     }
 
     boolean buildExecutable;
-    boolean staticExecutable;
     String targetLibC;
     String mainClass;
     String mainClassModule;

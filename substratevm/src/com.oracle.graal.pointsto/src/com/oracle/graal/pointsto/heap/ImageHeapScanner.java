@@ -174,9 +174,16 @@ public abstract class ImageHeapScanner {
         return data;
     }
 
-    void markTypeInstantiated(AnalysisType type, ScanReason reason) {
+    void markTypeReachable(AnalysisType type, ScanReason reason) {
         if (universe.sealed() && !type.isReachable()) {
-            throw AnalysisError.shouldNotReachHere("Universe is sealed. New type reachable: " + type.toJavaName());
+            throw AnalysisError.typeNotFound(type);
+        }
+        type.registerAsReachable(reason);
+    }
+
+    void markTypeInstantiated(AnalysisType type, ScanReason reason) {
+        if (universe.sealed() && !type.isInstantiated()) {
+            throw AnalysisError.typeNotFound(type);
         }
         universe.getBigbang().registerTypeAsInHeap(type, reason);
     }
@@ -254,7 +261,7 @@ public abstract class ImageHeapScanner {
             newImageHeapConstant = createImageHeapInstance(constant, type, reason);
             AnalysisType typeFromClassConstant = (AnalysisType) constantReflection.asJavaType(constant);
             if (typeFromClassConstant != null) {
-                typeFromClassConstant.registerAsReachable(reason);
+                markTypeReachable(typeFromClassConstant, reason);
             }
         }
         return newImageHeapConstant;

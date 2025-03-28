@@ -34,5 +34,35 @@
       "typeReachable": "com.oracle.svm.configure.test.conditionalconfig.PropagateButLeaveCommonConfiguration$Util"
     },
     "name": "com.oracle.svm.configure.test.conditionalconfig.PropagateButLeaveCommonConfiguration$C"
+  },
+  {
+    "condition": {
+      "typeReachable": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$ParentA"
+     },
+    "name": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$A1"
+  },
+  {
+    "condition": {
+      "typeReachable": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$ParentA"
+    },
+    "name": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$A2"
+  },
+  {
+    "condition": {
+      "typeReachable": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$ParentB"
+    },
+    "name": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$B1"
+  },
+  {
+    "condition": {
+      "typeReachable": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$ParentB"
+    },
+    "name": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$B2"
+  },
+  {
+    "condition": {
+      "typeReachable": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$Recursive"
+    },
+    "name": "com.oracle.svm.configure.test.conditionalconfig.PropagateThroughRecursiveCall$Recursive"
   }
 ]
