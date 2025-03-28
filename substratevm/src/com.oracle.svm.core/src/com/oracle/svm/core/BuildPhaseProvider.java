@@ -51,7 +51,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isAnalysisFinished() {
-        return singleton().analysisFinished;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().analysisFinished;
     }
 
     public static void markHostedUniverseBuilt() {
@@ -59,7 +59,7 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isHostedUniverseBuilt() {
-        return singleton().hostedUniverseBuilt;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().hostedUniverseBuilt;
     }
 
     public static void markCompilationFinished() {
@@ -67,6 +67,6 @@ public final class BuildPhaseProvider {
     }
 
     public static boolean isCompilationFinished() {
-        return singleton().compilationFinished;
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().compilationFinished;
     }
 }
