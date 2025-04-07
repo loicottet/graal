@@ -25,6 +25,7 @@
 package org.graalvm.compiler.nodes.loop;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.Iterator;
 

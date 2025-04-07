@@ -22,28 +22,28 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.graal.compiler.hotspot.phases;
+package org.graalvm.compiler.hotspot.phases;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import jdk.graal.compiler.debug.GraalError;
-import jdk.graal.compiler.nodes.AbstractMergeNode;
-import jdk.graal.compiler.nodes.DeoptimizingNode;
-import jdk.graal.compiler.nodes.FixedNode;
-import jdk.graal.compiler.nodes.FrameState;
-import jdk.graal.compiler.nodes.GraphState;
-import jdk.graal.compiler.nodes.StructuredGraph;
-import jdk.graal.compiler.nodes.extended.OSRMonitorEnterNode;
-import jdk.graal.compiler.nodes.extended.OSRStartNode;
-import jdk.graal.compiler.nodes.java.AccessMonitorNode;
-import jdk.graal.compiler.nodes.java.MonitorEnterNode;
-import jdk.graal.compiler.nodes.java.MonitorExitNode;
-import jdk.graal.compiler.nodes.java.MonitorIdNode;
-import jdk.graal.compiler.phases.Phase;
-import jdk.graal.compiler.phases.graph.MergeableState;
-import jdk.graal.compiler.phases.graph.PostOrderNodeIterator;
+import org.graalvm.compiler.debug.GraalError;
+import org.graalvm.compiler.nodes.AbstractMergeNode;
+import org.graalvm.compiler.nodes.DeoptimizingNode;
+import org.graalvm.compiler.nodes.FixedNode;
+import org.graalvm.compiler.nodes.FrameState;
+import org.graalvm.compiler.nodes.GraphState;
+import org.graalvm.compiler.nodes.StructuredGraph;
+import org.graalvm.compiler.nodes.extended.OSRMonitorEnterNode;
+import org.graalvm.compiler.nodes.extended.OSRStartNode;
+import org.graalvm.compiler.nodes.java.AccessMonitorNode;
+import org.graalvm.compiler.nodes.java.MonitorEnterNode;
+import org.graalvm.compiler.nodes.java.MonitorExitNode;
+import org.graalvm.compiler.nodes.java.MonitorIdNode;
+import org.graalvm.compiler.phases.Phase;
+import org.graalvm.compiler.phases.graph.MergeableState;
+import org.graalvm.compiler.phases.graph.PostOrderNodeIterator;
 
 /**
  * Ensure that the lock depths and {@link MonitorIdNode ids} agree with the enter and exits.
@@ -60,7 +60,6 @@ public class VerifyLockDepthPhase extends Phase {
         return NotApplicable.unlessRunBefore(this, GraphState.StageFlag.PARTIAL_ESCAPE, graphState);
     }
 
-    @Override
     public boolean shouldApply(StructuredGraph graph) {
         return graph.getNodes(MonitorIdNode.TYPE).isNotEmpty();
     }
@@ -106,7 +105,7 @@ public class VerifyLockDepthPhase extends Phase {
                 if (locks.isEmpty()) {
                     throw new LockStructureError("%s: lock stack is empty at", exit);
                 }
-                MonitorIdNode top = locks.removeLast();
+                MonitorIdNode top = locks.remove(locks.size() - 1);
                 if (top != id) {
                     throw new LockStructureError(top + " != " + id);
                 }
@@ -183,7 +182,9 @@ public class VerifyLockDepthPhase extends Phase {
                 state.verifyState(during.asFixedNode(), during.stateDuring());
             }
             if (node instanceof MonitorEnterNode) {
-                state.push((MonitorEnterNode) node);
+                MonitorEnterNode enter = (MonitorEnterNode) node;
+                state.push(enter);
+                state.verifyState(node, enter.stateAfter());
             } else if (node instanceof MonitorExitNode) {
                 state.pop((MonitorExitNode) node);
             } else if (node instanceof AccessMonitorNode) {
