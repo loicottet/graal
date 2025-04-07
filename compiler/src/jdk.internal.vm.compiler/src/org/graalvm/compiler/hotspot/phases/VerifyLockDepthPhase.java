@@ -22,7 +22,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package jdk.graal.compiler.hotspot.phases;
+package org.graalvm.compiler.hotspot.phases;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,7 +60,6 @@ public class VerifyLockDepthPhase extends Phase {
         return NotApplicable.unlessRunBefore(this, GraphState.StageFlag.PARTIAL_ESCAPE, graphState);
     }
 
-    @Override
     public boolean shouldApply(StructuredGraph graph) {
         return graph.getNodes(MonitorIdNode.TYPE).isNotEmpty();
     }
@@ -106,7 +105,7 @@ public class VerifyLockDepthPhase extends Phase {
                 if (locks.isEmpty()) {
                     throw new LockStructureError("%s: lock stack is empty at", exit);
                 }
-                MonitorIdNode top = locks.removeLast();
+                MonitorIdNode top = locks.remove(locks.size() - 1);
                 if (top != id) {
                     throw new LockStructureError(top + " != " + id);
                 }
@@ -183,7 +182,9 @@ public class VerifyLockDepthPhase extends Phase {
                 state.verifyState(during.asFixedNode(), during.stateDuring());
             }
             if (node instanceof MonitorEnterNode) {
-                state.push((MonitorEnterNode) node);
+                MonitorEnterNode enter = (MonitorEnterNode) node;
+                state.push(enter);
+                state.verifyState(node, enter.stateAfter());
             } else if (node instanceof MonitorExitNode) {
                 state.pop((MonitorExitNode) node);
             } else if (node instanceof AccessMonitorNode) {
