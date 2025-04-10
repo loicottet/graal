@@ -19,12 +19,12 @@
     "labsjdk-ee-17-llvm": {"name": "labsjdk",   "version": "ee-17.0.8+2-jvmci-23.1-b02-sulong", "platformspecific": true },
 
     "oraclejdk21":        {"name": "jpg-jdk",   "version": "21",      "build_id": "33", "release": true, "platformspecific": true, "extrabundles": ["static-libs"]},
-    "labsjdk-ce-21":      {"name": "labsjdk",   "version": "ee-21.0.7+8-jvmci-23.1-b60", "platformspecific": true },
-    "labsjdk-ce-21Debug": {"name": "labsjdk",   "version": "ee-21.0.7+8-jvmci-23.1-b60-debug", "platformspecific": true },
-    "labsjdk-ce-21-llvm": {"name": "labsjdk",   "version": "ee-21.0.7+8-jvmci-23.1-b60-sulong", "platformspecific": true },
-    "labsjdk-ee-21":      {"name": "labsjdk",   "version": "ee-21.0.7+8-jvmci-23.1-b60", "platformspecific": true },
-    "labsjdk-ee-21Debug": {"name": "labsjdk",   "version": "ee-21.0.7+8-jvmci-23.1-b60-debug", "platformspecific": true },
-    "labsjdk-ee-21-llvm": {"name": "labsjdk",   "version": "ee-21.0.7+8-jvmci-23.1-b60-sulong", "platformspecific": true },
+    "labsjdk-ce-21":      {"name": "labsjdk",   "version": "ee-21.0.8+2-jvmci-23.1-b61-20250409165919-3574c70309+947bc8a7b2", "platformspecific": true },
+    "labsjdk-ce-21Debug": {"name": "labsjdk",   "version": "ee-21.0.8+2-jvmci-23.1-b61-20250409165919-3574c70309+947bc8a7b2-debug", "platformspecific": true },
+    "labsjdk-ce-21-llvm": {"name": "labsjdk",   "version": "ee-21.0.8+2-jvmci-23.1-b61-20250409165919-3574c70309+947bc8a7b2-sulong", "platformspecific": true },
+    "labsjdk-ee-21":      {"name": "labsjdk",   "version": "ee-21.0.8+2-jvmci-23.1-b61-20250409165919-3574c70309+947bc8a7b2", "platformspecific": true },
+    "labsjdk-ee-21Debug": {"name": "labsjdk",   "version": "ee-21.0.8+2-jvmci-23.1-b61-20250409165919-3574c70309+947bc8a7b2-debug", "platformspecific": true },
+    "labsjdk-ee-21-llvm": {"name": "labsjdk",   "version": "ee-21.0.8+2-jvmci-23.1-b61-20250409165919-3574c70309+947bc8a7b2-sulong", "platformspecific": true },
 
     "oraclejdk22":        {"name": "jpg-jdk",   "version": "22",      "build_id": "2", "release": true, "platformspecific": true, "extrabundles": ["static-libs"]}
   },
