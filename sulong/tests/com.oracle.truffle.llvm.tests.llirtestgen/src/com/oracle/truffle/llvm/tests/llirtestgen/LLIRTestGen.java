@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * All rights reserved.
  *
@@ -755,7 +755,8 @@ public class LLIRTestGen {
                         "ashr_4xi8", // Works with LLVM9 but not 10, depends on undefined behavior
                         "shl_4xi8", // Works with LLVM9 but not 10, depends on undefined behavior
                         "lshr_4xi8", // Works with LLVM9 but not 10, depends on undefined behavior
-                        "ashr_3xi8" // Works with LLVM9 but not 10, depends on undefined behavior
+                        "ashr_3xi8", // Works with LLVM9 but not 10, depends on undefined behavior
+                        "frem_float", "frem_double" // Depends on undefined NaN behavior of Java
         ));
         if (Platform.isAArch64()) {
             filenameIgnorelist.addAll(Arrays.asList(
