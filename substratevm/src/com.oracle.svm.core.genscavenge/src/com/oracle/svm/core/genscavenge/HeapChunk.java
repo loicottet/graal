@@ -31,8 +31,10 @@ import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.c.struct.RawField;
+import org.graalvm.nativeimage.c.struct.RawFieldAddress;
 import org.graalvm.nativeimage.c.struct.RawStructure;
 import org.graalvm.nativeimage.c.struct.UniqueLocationIdentity;
+import org.graalvm.nativeimage.c.type.CIntPointer;
 import org.graalvm.word.ComparableWord;
 import org.graalvm.word.LocationIdentity;
 import org.graalvm.word.Pointer;
@@ -175,6 +177,12 @@ public final class HeapChunk {
 
         @RawField
         void setIdentityHashSalt(UnsignedWord value, LocationIdentity identity);
+
+        @RawField
+        int getPinnedObjectCount();
+
+        @RawFieldAddress
+        CIntPointer addressOfPinnedObjectCount();
     }
 
     public static void initialize(Header<?> chunk, Pointer objectsStart, UnsignedWord chunkSize) {
