@@ -24,10 +24,11 @@
  */
 package com.oracle.svm.core.jdk;
 
+import java.util.Objects;
+
 import com.oracle.svm.core.SubstrateUtil;
 import com.oracle.svm.core.annotate.Alias;
 import com.oracle.svm.core.annotate.Delete;
-import com.oracle.svm.core.annotate.KeepOriginal;
 import com.oracle.svm.core.annotate.RecomputeFieldValue;
 import com.oracle.svm.core.annotate.Substitute;
 import com.oracle.svm.core.annotate.TargetClass;
@@ -39,14 +40,14 @@ import com.oracle.svm.core.annotate.TargetClass;
  * corresponding system properties.
  * <p>
  * We {@link Substitute substitute} the whole class so that it is possible to use a custom static
- * constructor at run-time.
+ * constructor at run-time. If this class is used before the system properties are fully parsed and
+ * initialized, it can happen that we return or cache invalid values (see GR-64572).
  * <p>
  * Note for updating: use {@link Delete} for static fields that should be unreachable (e.g, because
  * we substituted an accessor and the field is therefore unused). Use {@link Alias} for static
  * fields that can be initialized in our custom static constructor. Use {@link Substitute} for
  * methods that access expensive lazily initialized system properties (see
- * {@link SystemPropertiesSupport} for a list of all lazily initialized properties). Use
- * {@link KeepOriginal} for methods that we don't want to substitute.
+ * {@link SystemPropertiesSupport} for a list of all lazily initialized properties).
  */
 @Substitute
 @TargetClass(jdk.internal.util.StaticProperty.class)
@@ -131,15 +132,27 @@ final class Target_jdk_internal_util_StaticProperty {
         return SystemPropertiesSupport.singleton().getInitialProperty("java.io.tmpdir");
     }
 
-    @KeepOriginal
-    public static native String sunBootLibraryPath();
+    @Substitute
+    public static String sunBootLibraryPath() {
+        assert Objects.equals(SUN_BOOT_LIBRARY_PATH, SystemPropertiesSupport.singleton().getInitialProperty("sun.boot.library.path", ""));
+        return SUN_BOOT_LIBRARY_PATH;
+    }
 
-    @KeepOriginal
-    public static native String jdkSerialFilter();
+    @Substitute
+    public static String jdkSerialFilter() {
+        assert Objects.equals(JDK_SERIAL_FILTER, SystemPropertiesSupport.singleton().getInitialProperty("jdk.serialFilter"));
+        return JDK_SERIAL_FILTER;
+    }
 
-    @KeepOriginal
-    public static native String jdkSerialFilterFactory();
+    @Substitute
+    public static String jdkSerialFilterFactory() {
+        assert Objects.equals(JDK_SERIAL_FILTER_FACTORY, SystemPropertiesSupport.singleton().getInitialProperty("jdk.serialFilterFactory"));
+        return JDK_SERIAL_FILTER_FACTORY;
+    }
 
-    @KeepOriginal
-    public static native String nativeEncoding();
+    @Substitute
+    public static String nativeEncoding() {
+        assert Objects.equals(NATIVE_ENCODING, SystemPropertiesSupport.singleton().getInitialProperty("native.encoding"));
+        return NATIVE_ENCODING;
+    }
 }
