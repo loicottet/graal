@@ -29,7 +29,6 @@ import org.graalvm.nativeimage.c.function.CodePointer;
 import org.graalvm.word.Pointer;
 import org.graalvm.word.WordFactory;
 
-import com.oracle.svm.core.NeverInline;
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.code.CodeInfo;
 import com.oracle.svm.core.code.CodeInfoAccess;
@@ -206,15 +205,6 @@ public class ThreadStackPrinter {
                 return 'J';
             }
         }
-    }
-
-    /**
-     * Walk the stack printing each frame.
-     */
-    @NeverInline("debugger breakpoint")
-    @Uninterruptible(reason = "Called from uninterruptible code.")
-    public static void printBacktrace() {
-        // Only used as a debugger breakpoint
     }
 
     @Uninterruptible(reason = "Prevent deoptimization of stack frames while in this method.")

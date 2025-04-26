@@ -91,6 +91,7 @@ import com.oracle.svm.core.locks.VMLockSupport;
 import com.oracle.svm.core.log.Log;
 import com.oracle.svm.core.option.RuntimeOptionKey;
 import com.oracle.svm.core.os.VirtualMemoryProvider;
+import com.oracle.svm.core.snippets.KnownIntrinsics;
 import com.oracle.svm.core.stack.JavaFrameAnchor;
 import com.oracle.svm.core.stack.JavaFrameAnchors;
 import com.oracle.svm.core.stack.JavaStackWalker;
@@ -871,7 +872,7 @@ public class SubstrateDiagnostics {
         }
     }
 
-    static class DumpVMInfo extends DiagnosticThunk {
+    static class DumpBuildTimeInfo extends DiagnosticThunk {
         @Override
         public int maxInvocationCount() {
             return 1;
@@ -888,7 +889,9 @@ public class SubstrateDiagnostics {
             Platform platform = ImageSingletons.lookup(Platform.class);
             log.string("Platform: ").string(platform.getOS()).string("/").string(platform.getArchitecture()).newline();
             log.string("Page size: ").unsigned(SubstrateOptions.getPageSize()).newline();
+            log.string("Supports isolates: ").bool(SubstrateOptions.SpawnIsolates.getValue()).newline();
             log.string("Container support: ").bool(Containers.Options.UseContainerSupport.getValue()).newline();
+            log.string("Object reference size: ").signed(ConfigurationValues.getObjectLayout().getReferenceSize()).newline();
             log.string("CPU features used for AOT compiled code: ").string(getBuildTimeCpuFeatures()).newline();
             log.indent(false);
         }
@@ -899,7 +902,7 @@ public class SubstrateDiagnostics {
         }
     }
 
-    public static class DumpMachineInfo extends DiagnosticThunk {
+    public static class DumpRuntimeInfo extends DiagnosticThunk {
         @Override
         public int maxInvocationCount() {
             return 1;
@@ -909,6 +912,9 @@ public class SubstrateDiagnostics {
         @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Must not allocate while printing diagnostics.")
         public void printDiagnostics(Log log, ErrorContext context, int maxDiagnosticLevel, int invocationCount) {
             log.string("Runtime information:").indent(true);
+            if (SubstrateOptions.SpawnIsolates.getValue()) {
+                log.string("Heap base: ").zhex(KnownIntrinsics.heapBase()).newline();
+            }
 
             log.string("CPU cores (OS): ");
             if (!SubstrateOptions.AsyncSignalSafeDiagnostics.getValue() && SubstrateOptions.JNI.getValue()) {
@@ -1238,8 +1244,8 @@ public class SubstrateDiagnostics {
             thunks.add(new DumpCurrentVMOperation());
             thunks.add(new DumpVMOperationHistory());
             thunks.add(new VMLockSupport.DumpVMMutexes());
-            thunks.add(new DumpVMInfo());
-            thunks.add(new DumpMachineInfo());
+            thunks.add(new DumpBuildTimeInfo());
+            thunks.add(new DumpRuntimeInfo());
             if (ImageSingletons.contains(JavaMainWrapper.JavaMainSupport.class)) {
                 thunks.add(new DumpCommandLine());
             }

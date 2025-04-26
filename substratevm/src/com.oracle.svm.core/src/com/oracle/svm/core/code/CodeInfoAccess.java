@@ -365,6 +365,15 @@ public final class CodeInfoAccess {
         return cast(info).getFrameInfoSourceClasses();
     }
 
+    /**
+     * In some callers, we can't necessarily assume that we have a valid {@link CodeInfo} object.
+     * So, this method explicitly avoids any {@link CodeInfo} field accesses.
+     */
+    @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
+    public static boolean isAOTImageCodeSlow(CodeInfo info) {
+        return info == CodeInfoTable.getImageCodeInfo();
+    }
+
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
     public static NonmovableObjectArray<String> getFrameInfoSourceMethodNames(CodeInfo info) {
         return cast(info).getFrameInfoSourceMethodNames();

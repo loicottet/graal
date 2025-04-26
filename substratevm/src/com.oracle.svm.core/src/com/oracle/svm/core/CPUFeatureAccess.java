@@ -37,8 +37,10 @@ public interface CPUFeatureAccess {
         return ImageSingletons.lookup(CPUFeatureAccess.class);
     }
 
+    @Uninterruptible(reason = "Thread state not set up yet.")
     int verifyHostSupportsArchitectureEarly();
 
+    @Uninterruptible(reason = "Thread state not set up yet.")
     void verifyHostSupportsArchitectureEarlyOrExit();
 
     void enableFeatures(Architecture architecture);

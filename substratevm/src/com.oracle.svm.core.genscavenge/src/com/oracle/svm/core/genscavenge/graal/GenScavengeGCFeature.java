@@ -35,6 +35,7 @@ import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.phases.util.Providers;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.hosted.Feature;
+import org.graalvm.nativeimage.impl.PinnedObjectSupport;
 
 import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
@@ -47,6 +48,7 @@ import com.oracle.svm.core.genscavenge.HeapImpl;
 import com.oracle.svm.core.genscavenge.HeapImplMemoryMXBean;
 import com.oracle.svm.core.genscavenge.ImageHeapInfo;
 import com.oracle.svm.core.genscavenge.IncrementalGarbageCollectorMXBean;
+import com.oracle.svm.core.genscavenge.PinnedObjectSupportImpl;
 import com.oracle.svm.core.genscavenge.LinearImageHeapLayouter;
 import com.oracle.svm.core.genscavenge.jvmstat.EpsilonGCPerfData;
 import com.oracle.svm.core.genscavenge.jvmstat.SerialGCPerfData;
@@ -94,6 +96,7 @@ class GenScavengeGCFeature implements InternalFeature {
         HeapImpl heap = new HeapImpl(SubstrateOptions.getPageSize());
         ImageSingletons.add(Heap.class, heap);
         ImageSingletons.add(GCAllocationSupport.class, new GenScavengeAllocationSupport());
+        ImageSingletons.add(PinnedObjectSupport.class, new PinnedObjectSupportImpl());
 
         List<MemoryPoolMXBean> memoryPools = Arrays.asList(GenScavengeMemoryPoolMXBeans.createMemoryPoolMXBeans());
         List<GarbageCollectorMXBean> garbageCollectors;
