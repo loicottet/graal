@@ -126,5 +126,5 @@ public interface ReferenceAccess {
     /**
      * Returns the size of the address space, based on the reference size.
      */
-    UnsignedWord getAddressSpaceSize();
+    UnsignedWord getMaxAddressSpaceSize();
 }

@@ -369,6 +369,7 @@ suite = {
             ],
             "requiresConcealed" : {
                 "java.base": [
+                    "jdk.internal.misc",
                     "sun.nio.ch",
                 ],
                 "java.management": [

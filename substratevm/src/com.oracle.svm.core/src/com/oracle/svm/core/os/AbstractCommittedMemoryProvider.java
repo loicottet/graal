@@ -143,4 +143,15 @@ public abstract class AbstractCommittedMemoryProvider implements CommittedMemory
             totalAllocated = totalAllocated.subtract(size);
         }
     }
+
+    @Override
+    public UnsignedWord getCollectedHeapAddressSpaceSize() {
+        /* Only a part of the address space is available for the collected Java heap. */
+        UnsignedWord reservedAddressSpace = getReservedAddressSpaceSize();
+        UnsignedWord imageHeapSize = Heap.getHeap().getImageHeapReservedBytes();
+        assert reservedAddressSpace.aboveThan(imageHeapSize);
+        return reservedAddressSpace.subtract(imageHeapSize);
+    }
+
+    protected abstract UnsignedWord getReservedAddressSpaceSize();
 }

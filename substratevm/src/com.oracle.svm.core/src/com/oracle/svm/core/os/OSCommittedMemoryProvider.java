@@ -33,6 +33,7 @@ import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 import org.graalvm.nativeimage.c.type.WordPointer;
 import org.graalvm.word.PointerBase;
+import org.graalvm.word.UnsignedWord;
 
 import com.oracle.svm.core.Isolates;
 import com.oracle.svm.core.SubstrateOptions;
@@ -42,6 +43,7 @@ import com.oracle.svm.core.c.function.CEntryPointErrors;
 import com.oracle.svm.core.c.function.CEntryPointSetup;
 import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
+import com.oracle.svm.core.heap.ReferenceAccess;
 
 public class OSCommittedMemoryProvider extends ChunkBasedCommittedMemoryProvider {
     @Platforms(Platform.HOSTED_ONLY.class)
@@ -70,6 +72,11 @@ public class OSCommittedMemoryProvider extends ChunkBasedCommittedMemoryProvider
 
         PointerBase heapBase = Isolates.getHeapBase(CurrentIsolate.getIsolate());
         return ImageHeapProvider.get().freeImageHeap(heapBase);
+    }
+
+    @Override
+    public UnsignedWord getReservedAddressSpaceSize() {
+        return ReferenceAccess.singleton().getMaxAddressSpaceSize();
     }
 }
 
