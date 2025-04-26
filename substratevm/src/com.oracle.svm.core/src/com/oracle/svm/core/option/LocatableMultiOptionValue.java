@@ -44,7 +44,7 @@ public abstract class LocatableMultiOptionValue<T> implements MultiOptionValue<T
 
     private final String delimiter;
     private final Class<T> valueType;
-    private final List<Pair<T, String>> values;
+    protected final List<Pair<T, String>> values;
 
     private LocatableMultiOptionValue(Class<T> valueType, String delimiter, List<T> defaults) {
         this.valueType = valueType;
@@ -127,6 +127,15 @@ public abstract class LocatableMultiOptionValue<T> implements MultiOptionValue<T
         @Override
         public MultiOptionValue<String> createCopy() {
             return new Strings(this);
+        }
+
+        @Override
+        public void valueUpdate(Object value) {
+            if (value instanceof Strings) {
+                values.addAll(((Strings) value).values);
+                return;
+            }
+            super.valueUpdate(value);
         }
 
         private Strings(String delimiter, List<String> defaultStrings) {
