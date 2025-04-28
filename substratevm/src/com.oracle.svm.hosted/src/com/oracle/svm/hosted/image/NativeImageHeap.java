@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,6 +61,8 @@ import com.oracle.svm.core.config.ConfigurationValues;
 import com.oracle.svm.core.config.ObjectLayout;
 import com.oracle.svm.core.heap.FillerObject;
 import com.oracle.svm.core.heap.Heap;
+
+import com.oracle.svm.core.heap.ObjectHeader;
 import com.oracle.svm.core.hub.DynamicHub;
 import com.oracle.svm.core.hub.DynamicHubCompanion;
 import com.oracle.svm.core.hub.LayoutEncoding;
@@ -357,10 +359,12 @@ public final class NativeImageHeap implements ImageHeap {
     }
 
     @Override
-    public int countDynamicHubs() {
+    public int countAndVerifyDynamicHubs() {
+        ObjectHeader objHeader = Heap.getHeap().getObjectHeader();
         int count = 0;
         for (ObjectInfo o : getObjects()) {
             if (metaAccess.isInstanceOf(o.getConstant(), DynamicHub.class)) {
+                objHeader.verifyDynamicHubOffsetInImageHeap(o.getOffset());
                 count++;
             }
         }
