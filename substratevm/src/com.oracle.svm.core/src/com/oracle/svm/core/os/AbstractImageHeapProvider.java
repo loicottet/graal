@@ -29,15 +29,23 @@ import static com.oracle.svm.core.Isolates.IMAGE_HEAP_END;
 
 import org.graalvm.compiler.word.Word;
 import org.graalvm.word.UnsignedWord;
+import org.graalvm.word.WordFactory;
 
 import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.util.UnsignedUtils;
 
 public abstract class AbstractImageHeapProvider implements ImageHeapProvider {
+    @Override
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)
-    protected static UnsignedWord getImageHeapAddressSpaceSize() {
-        UnsignedWord imageHeapSizeInFile = getImageHeapSizeInFile();
-        return imageHeapSizeInFile.add(Heap.getHeap().getImageHeapOffsetInAddressSpace());
+    public UnsignedWord getImageHeapAddressSpaceSize() {
+        UnsignedWord pageSize = VirtualMemoryProvider.get().getGranularity();
+        int imageHeapOffset = Heap.getHeap().getImageHeapOffsetInAddressSpace();
+        assert imageHeapOffset >= 0;
+        UnsignedWord size = WordFactory.unsigned(imageHeapOffset);
+        size = size.add(getImageHeapSizeInFile());
+        size = UnsignedUtils.roundUp(size, pageSize);
+        return size;
     }
 
     @Uninterruptible(reason = "Called from uninterruptible code.", mayBeInlined = true)

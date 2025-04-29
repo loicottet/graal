@@ -127,5 +127,5 @@ public interface ReferenceAccess {
      * Returns the maximum size that the Java heap address space can have at run-time (e.g., based
      * on the reference size).
      */
-    UnsignedWord getAddressSpaceSize();
+    UnsignedWord getMaxAddressSpaceSize();
 }
