@@ -28,15 +28,16 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.concurrent.TimeUnit;
 
-import com.oracle.svm.core.Uninterruptible;
-import com.oracle.svm.core.thread.VMOperation;
-import com.oracle.svm.core.thread.VMOperationListener;
 import org.graalvm.nativeimage.ImageSingletons;
 import org.graalvm.nativeimage.Platform;
 import org.graalvm.nativeimage.Platforms;
 
 import com.oracle.svm.core.JavaMainWrapper;
+import com.oracle.svm.core.Uninterruptible;
 import com.oracle.svm.core.heap.Heap;
+import com.oracle.svm.core.jdk.SystemPropertiesSupport;
+import com.oracle.svm.core.thread.VMOperation;
+import com.oracle.svm.core.thread.VMOperationListener;
 import com.sun.management.OperatingSystemMXBean;
 
 /**
@@ -123,15 +124,16 @@ class SystemCounters implements PerfDataHolder, VMOperationListener {
         loadedClasses.allocate(numberOfLoadedClasses());
         processors.allocate(getAvailableProcessors());
 
-        tempDir.allocate(getSystemProperty("java.io.tmpdir"));
-        javaVersion.allocate(getSystemProperty("java.version"));
-        vmName.allocate(getSystemProperty("java.vm.name"));
-        vmVendor.allocate(getSystemProperty("java.vm.vendor"));
-        vmVersion.allocate(getSystemProperty("java.vm.version"));
-        osArch.allocate(getSystemProperty("os.arch"));
-        osName.allocate(getSystemProperty("os.name"));
-        userDir.allocate(getSystemProperty("user.dir"));
-        userName.allocate(getSystemProperty("user.name"));
+        SystemPropertiesSupport properties = SystemPropertiesSupport.singleton();
+        tempDir.allocate(properties.getInitialProperty("java.io.tmpdir"));
+        javaVersion.allocate(properties.getInitialProperty("java.version"));
+        vmName.allocate(properties.getInitialProperty("java.vm.name"));
+        vmVendor.allocate(properties.getInitialProperty("java.vm.vendor"));
+        vmVersion.allocate(properties.getInitialProperty("java.vm.version"));
+        osArch.allocate(properties.getInitialProperty("os.arch"));
+        osName.allocate(properties.getInitialProperty("os.name"));
+        userDir.allocate(properties.getInitialProperty("user.dir"));
+        userName.allocate(properties.getInitialProperty("user.name"));
 
         gcInProgress.allocate();
 
@@ -143,15 +145,6 @@ class SystemCounters implements PerfDataHolder, VMOperationListener {
         processCPUTimeCounter.allocate();
 
         initDoneTime.allocate(System.currentTimeMillis());
-    }
-
-    private static String getSystemProperty(String s) {
-        /* Certain system properties (e.g., "user.dir"), may throw an exception. */
-        try {
-            return System.getProperty(s);
-        } catch (Throwable e) {
-            return "";
-        }
     }
 
     @Override

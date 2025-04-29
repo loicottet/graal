@@ -132,7 +132,9 @@ public class WindowsProcessPropertiesSupport extends BaseProcessPropertiesSuppor
         return WindowsSystemPropertiesSupport.toJavaString(path, length);
     }
 
+    /** This method is unsafe and should not be used. */
     @Override
+    @SuppressWarnings("deprecation")
     public String setLocale(String category, String locale) {
         throw VMError.intentionallyUnimplemented(); // ExcludeFromJacocoGeneratedReport
     }

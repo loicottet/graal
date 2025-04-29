@@ -46,9 +46,9 @@ import org.graalvm.compiler.nodes.spi.LoweringTool;
 import org.graalvm.compiler.options.OptionValues;
 import org.graalvm.compiler.phases.util.Providers;
 import org.graalvm.compiler.replacements.SnippetTemplate;
-import org.graalvm.compiler.replacements.Snippets;
 import org.graalvm.compiler.replacements.SnippetTemplate.Arguments;
 import org.graalvm.compiler.replacements.SnippetTemplate.SnippetInfo;
+import org.graalvm.compiler.replacements.Snippets;
 import org.graalvm.compiler.word.Word;
 import org.graalvm.nativeimage.CurrentIsolate;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -216,6 +216,7 @@ public final class CEntryPointSnippets extends SubstrateTemplates implements Sni
         if (!validPageSize) {
             return CEntryPointErrors.PAGE_SIZE_CHECK_FAILED;
         }
+
         CEntryPointCreateIsolateParameters parameters = providedParameters;
         if (parameters.isNull() || parameters.version() < 1) {
             parameters = StackValue.get(CEntryPointCreateIsolateParameters.class);
@@ -309,6 +310,10 @@ public final class CEntryPointSnippets extends SubstrateTemplates implements Sni
 
     @NeverInline("GR-24649")
     private static int initializeIsolateInterruptibly1(CEntryPointCreateIsolateParameters parameters) {
+        long initStateAddr = FIRST_ISOLATE_INIT_STATE.get().rawValue();
+        boolean firstIsolate = Unsafe.getUnsafe().compareAndSetInt(null, initStateAddr, FirstIsolateInitStates.UNINITIALIZED, FirstIsolateInitStates.IN_PROGRESS);
+        Isolates.setCurrentIsFirstIsolate(firstIsolate);
+
         /*
          * The VM operation thread must be started early as no VM operations can be scheduled before
          * this thread is fully started. The isolate teardown may also use VM operations.
@@ -317,10 +322,10 @@ public final class CEntryPointSnippets extends SubstrateTemplates implements Sni
             VMOperationControl.startVMOperationThread();
         }
 
-        long initStateAddr = FIRST_ISOLATE_INIT_STATE.get().rawValue();
-        boolean firstIsolate = Unsafe.getUnsafe().compareAndSetInt(null, initStateAddr, FirstIsolateInitStates.UNINITIALIZED, FirstIsolateInitStates.IN_PROGRESS);
-
-        Isolates.setCurrentIsFirstIsolate(firstIsolate);
+        /*
+         * Before this point, only limited error handling is possible because the isolate is not
+         * sufficiently initialized (i.e., we can't tear it down properly).
+         */
         Isolates.setCurrentStartTime();
 
         if (!firstIsolate) {

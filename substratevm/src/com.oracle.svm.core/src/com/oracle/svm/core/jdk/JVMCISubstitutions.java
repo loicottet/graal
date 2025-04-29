@@ -53,7 +53,7 @@ final class IsNotLibgraal implements BooleanSupplier {
 final class Target_jdk_vm_ci_services_Services {
     @Substitute
     public static Map<String, String> getSavedProperties() {
-        return SystemPropertiesSupport.singleton().getSavedProperties();
+        return SystemPropertiesSupport.singleton().getInitialProperties();
     }
 }
 

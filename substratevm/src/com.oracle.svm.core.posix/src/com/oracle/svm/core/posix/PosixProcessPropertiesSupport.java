@@ -107,7 +107,9 @@ public abstract class PosixProcessPropertiesSupport extends BaseProcessPropertie
         }
     }
 
+    /** This method is unsafe and should not be used. */
     @Override
+    @SuppressWarnings("deprecation")
     public String setLocale(String category, String locale) {
         return PosixUtils.setLocale(category, locale);
     }

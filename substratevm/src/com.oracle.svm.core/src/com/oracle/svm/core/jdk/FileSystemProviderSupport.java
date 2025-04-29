@@ -49,6 +49,8 @@ import com.oracle.svm.core.feature.AutomaticallyRegisteredFeature;
 import com.oracle.svm.core.feature.InternalFeature;
 import com.oracle.svm.core.option.HostedOptionKey;
 
+import jdk.internal.util.StaticProperty;
+
 public final class FileSystemProviderSupport {
 
     public static class Options {
@@ -312,7 +314,7 @@ class UnixFileSystemAccessors {
          * Note that the `System.getProperty("user.dir")` value is always used when re-initializing
          * a UnixFileSystem, which is not the case with the WindowsFileSystem (JDK-8066709).
          */
-        that.originalConstructor(that.provider, System.getProperty("user.dir"));
+        that.originalConstructor(that.provider, System.getProperty(UserSystemProperty.DIR));
 
         /*
          * Now the object is completely re-initialized and can be used by any thread without
@@ -391,7 +393,7 @@ class WindowsFileSystemAccessors {
             return;
         }
         that.needsReinitialization = NeedsReinitializationProvider.STATUS_IN_REINITIALIZATION;
-        that.originalConstructor(that.provider, SystemPropertiesSupport.singleton().userDir());
+        that.originalConstructor(that.provider, SystemPropertiesSupport.singleton().getInitialProperty(UserSystemProperty.DIR));
         that.needsReinitialization = NeedsReinitializationProvider.STATUS_REINITIALIZED;
     }
 }
@@ -447,13 +449,14 @@ final class Target_java_io_FileSystem {
 class UserDirAccessors {
     @SuppressWarnings("unused")
     static String getUserDir(Target_java_io_FileSystem that) {
-        /*
-         * Note that on Windows, we normalize the property value (JDK-8198997) and do not use the
-         * `StaticProperty.userDir()` like the rest (JDK-8066709).
-         */
-        return Platform.includedIn(Platform.WINDOWS.class)
-                        ? that.normalize(System.getProperty("user.dir"))
-                        : SystemPropertiesSupport.singleton().userDir();
+        if (Platform.includedIn(Platform.WINDOWS.class)) {
+            /*
+             * Note that on Windows, we normalize the property value (JDK-8198997) and do not use
+             * the `StaticProperty.userDir()` like the rest (JDK-8066709).
+             */
+            return that.normalize(System.getProperty(UserSystemProperty.DIR));
+        }
+        return StaticProperty.userDir();
     }
 }
 
