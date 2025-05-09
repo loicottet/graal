@@ -337,6 +337,7 @@ abstract class AbstractCollectionPolicy implements CollectionPolicy {
             minYoungSpaces = minYoungSpaces.add(minSpaceSize().multiply(2)); // survivor from and to
         }
         UnsignedWord minAllSpaces = minYoungSpaces.add(minSpaceSize()); // old
+        UnsignedWord heapSizeLimit = UnsignedUtils.max(alignDown(getHeapSizeLimit()), minAllSpaces);
 
         UnsignedWord maxHeap;
         long optionMax = SubstrateGCOptions.MaxHeapSize.getValue();
@@ -348,7 +349,7 @@ abstract class AbstractCollectionPolicy implements CollectionPolicy {
             maxHeap = PhysicalMemory.getCachedSize().unsignedDivide(100).multiply(HeapParameters.getMaximumHeapSizePercent());
         }
         UnsignedWord unadjustedMaxHeap = maxHeap;
-        maxHeap = UnsignedUtils.clamp(alignDown(maxHeap), minAllSpaces, alignDown(getHeapSizeLimit()));
+        maxHeap = UnsignedUtils.clamp(alignDown(maxHeap), minAllSpaces, heapSizeLimit);
 
         UnsignedWord maxYoung;
         long optionMaxYoung = SubstrateGCOptions.MaxNewSize.getValue();
@@ -363,7 +364,7 @@ abstract class AbstractCollectionPolicy implements CollectionPolicy {
 
         UnsignedWord maxOld = alignDown(maxHeap.subtract(maxYoung));
         maxHeap = maxYoung.add(maxOld);
-        VMError.guarantee(maxOld.aboveOrEqual(minSpaceSize()) && maxHeap.belowOrEqual(getHeapSizeLimit()) &&
+        VMError.guarantee(maxOld.aboveOrEqual(minSpaceSize()) && maxHeap.belowOrEqual(heapSizeLimit) &&
                         (maxHeap.belowOrEqual(unadjustedMaxHeap) || unadjustedMaxHeap.belowThan(minAllSpaces)));
 
         UnsignedWord minHeap = WordFactory.zero();

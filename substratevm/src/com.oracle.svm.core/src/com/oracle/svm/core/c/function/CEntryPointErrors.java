@@ -98,7 +98,7 @@ public final class CEntryPointErrors {
     @Description("Some exception is not caught.") //
     public static final int UNCAUGHT_EXCEPTION = 12;
 
-    @Description("Initialization the isolate failed.") //
+    @Description("Initializing the isolate failed.") //
     public static final int ISOLATE_INITIALIZATION_FAILED = 13;
 
     @Description("Opening the located auxiliary image file failed.") //
