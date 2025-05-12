@@ -1482,13 +1482,30 @@ final class Target_com_oracle_truffle_polyglot_InternalResourceCache {
     }
 }
 
-@TargetClass(className = "com.oracle.truffle.polyglot.PolyglotEngineImpl", onlyWith = TruffleBaseFeature.IsEnabled.class)
+@TargetClass(className = "com.oracle.truffle.polyglot.PolyglotEngineImpl", onlyWith = LogFallbackAvailable.class)
 final class Target_com_oracle_truffle_polyglot_PolyglotEngineImpl {
     @Substitute
     static void logFallback(String message) {
         try (Log log = Log.log()) {
             log.string(message.getBytes(StandardCharsets.UTF_8));
             log.flush();
+        }
+    }
+}
+
+final class LogFallbackAvailable implements BooleanSupplier {
+
+    @Override
+    public boolean getAsBoolean() {
+        if (!ImageSingletons.contains(TruffleBaseFeature.class)) {
+            return false;
+        }
+        try {
+            Class<?> polyglotEngineImpl = Class.forName("com.oracle.truffle.polyglot.PolyglotEngineImpl");
+            polyglotEngineImpl.getDeclaredMethod("logFallback", String.class);
+            return true;
+        } catch (ReflectiveOperationException e) {
+            return false;
         }
     }
 }
