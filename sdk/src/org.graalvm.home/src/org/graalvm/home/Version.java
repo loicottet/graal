@@ -1,9 +1,5 @@
 /*
-<<<<<<< HEAD
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
-=======
  * Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
->>>>>>> 80753d10f25 ([GR-59688] Allow compiler newer than Truffle runtime in a minor version.)
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * The Universal Permissive License (UPL), Version 1.0

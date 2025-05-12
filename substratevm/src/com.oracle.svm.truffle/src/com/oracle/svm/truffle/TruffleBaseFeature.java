@@ -1,9 +1,5 @@
 /*
-<<<<<<< HEAD
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
-=======
  * Copyright (c) 2013, 2025, Oracle and/or its affiliates. All rights reserved.
->>>>>>> 80753d10f25 ([GR-59688] Allow compiler newer than Truffle runtime in a minor version.)
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,12 +33,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.annotation.Annotation;
-<<<<<<< HEAD
-=======
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
->>>>>>> 80753d10f25 ([GR-59688] Allow compiler newer than Truffle runtime in a minor version.)
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;

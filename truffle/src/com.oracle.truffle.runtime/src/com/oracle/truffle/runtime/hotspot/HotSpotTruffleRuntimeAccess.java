@@ -195,10 +195,6 @@ public final class HotSpotTruffleRuntimeAccess implements TruffleRuntimeAccess {
         return rt;
     }
 
-<<<<<<< HEAD
-    private static RuntimeException throwVersionError(String errorFormat, Object... args) {
-        StringBuilder errorMessage = new StringBuilder("Polyglot version compatibility check failed.\n");
-=======
     private static Version stripUpdateVersion(Version version) {
         int major = version.getComponent(0);
         int minor = version.getComponent(1);
@@ -212,18 +208,8 @@ public final class HotSpotTruffleRuntimeAccess implements TruffleRuntimeAccess {
         }
     }
 
-    private static void registerVirtualThreadMountHooks() {
-        Consumer<Thread> onMount = (t) -> {
-            HotSpotFastThreadLocal.mount();
-            HotSpotThreadLocalHandshake.setPendingFlagForVirtualThread();
-        };
-        Consumer<Thread> onUmount = (t) -> HotSpotFastThreadLocal.unmount();
-        ModulesSupport.getJavaLangSupport().registerVirtualThreadMountHooks(onMount, onUmount);
-    }
-
     private static String formatVersionWarningMessage(String errorFormat, Object... args) {
         StringBuilder errorMessage = new StringBuilder("Version check failed.\n");
->>>>>>> 80753d10f25 ([GR-59688] Allow compiler newer than Truffle runtime in a minor version.)
         errorMessage.append(String.format(errorFormat, args));
         errorMessage.append("""
                         To disable this version check the '-Dpolyglotimpl.DisableVersionChecks=true' system property can be used.
