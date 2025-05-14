@@ -30,7 +30,7 @@ import com.oracle.svm.core.annotate.TargetElement;
 import com.oracle.svm.core.jdk.JDK17OrEarlier;
 import com.oracle.svm.core.jdk.JDK19OrLater;
 
-@TargetClass(className = "EventWriter", classNameProvider = Package_jdk_jfr_internal_event_helper.class, onlyWith = HasJfrSupport.class)
+@TargetClass(className = "EventWriter", classNameProvider = Package_jdk_jfr_internal_event_helper.class)
 public final class Target_jdk_jfr_internal_EventWriter {
     @Alias //
     @SuppressWarnings("unused") boolean notified;

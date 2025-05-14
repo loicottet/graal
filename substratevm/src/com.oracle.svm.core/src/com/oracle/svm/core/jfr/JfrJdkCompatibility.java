@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2023, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,9 +24,29 @@
  */
 package com.oracle.svm.core.jfr;
 
-import com.oracle.svm.core.annotate.TargetClass;
-import com.oracle.svm.core.jdk.JDK19OrLater;
+import org.graalvm.nativeimage.hosted.FieldValueTransformer;
 
-@TargetClass(className = "jdk.jfr.internal.event.EventConfiguration", onlyWith = JDK19OrLater.class)
-public final class Target_jdk_jfr_internal_event_EventConfiguration {
+import com.oracle.svm.core.annotate.Alias;
+import com.oracle.svm.core.annotate.RecomputeFieldValue;
+import com.oracle.svm.core.annotate.RecomputeFieldValue.Kind;
+import com.oracle.svm.core.annotate.TargetClass;
+
+@SuppressWarnings("unused")
+public final class JfrJdkCompatibility {
+    private JfrJdkCompatibility() {
+    }
+}
+
+@TargetClass(className = "jdk.jfr.internal.JVMSupport")
+final class Target_jdk_jfr_internal_JVMSupport {
+    @Alias //
+    @RecomputeFieldValue(kind = Kind.Custom, declClass = JfrNotAvailableTransformer.class, isFinal = true) //
+    private static boolean notAvailable;
+}
+
+final class JfrNotAvailableTransformer implements FieldValueTransformer {
+    @Override
+    public Object transform(Object receiver, Object originalValue) {
+        return !HasJfrSupport.get();
+    }
 }
