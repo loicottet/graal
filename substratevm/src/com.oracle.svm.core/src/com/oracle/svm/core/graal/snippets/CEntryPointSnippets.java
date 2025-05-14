@@ -216,6 +216,7 @@ public final class CEntryPointSnippets extends SubstrateTemplates implements Sni
         if (!validPageSize) {
             return CEntryPointErrors.PAGE_SIZE_CHECK_FAILED;
         }
+
         CLongPointer parsedArgs = StackValue.get(IsolateArgumentParser.getStructSize());
         IsolateArgumentParser.parse(parameters, parsedArgs);
 
@@ -300,6 +301,10 @@ public final class CEntryPointSnippets extends SubstrateTemplates implements Sni
 
     @NeverInline("GR-24649")
     private static int initializeIsolateInterruptibly1(CEntryPointCreateIsolateParameters parameters) {
+        long initStateAddr = FIRST_ISOLATE_INIT_STATE.get().rawValue();
+        boolean firstIsolate = Unsafe.getUnsafe().compareAndSetInt(null, initStateAddr, FirstIsolateInitStates.UNINITIALIZED, FirstIsolateInitStates.IN_PROGRESS);
+        Isolates.setCurrentIsFirstIsolate(firstIsolate);
+
         /*
          * The VM operation thread must be started early as no VM operations can be scheduled before
          * this thread is fully started. The isolate teardown may also use VM operations.
@@ -308,10 +313,10 @@ public final class CEntryPointSnippets extends SubstrateTemplates implements Sni
             VMOperationControl.startVMOperationThread();
         }
 
-        long initStateAddr = FIRST_ISOLATE_INIT_STATE.get().rawValue();
-        boolean firstIsolate = Unsafe.getUnsafe().compareAndSetInt(null, initStateAddr, FirstIsolateInitStates.UNINITIALIZED, FirstIsolateInitStates.IN_PROGRESS);
-
-        Isolates.setCurrentIsFirstIsolate(firstIsolate);
+        /*
+         * Before this point, only limited error handling is possible because the isolate is not
+         * sufficiently initialized (i.e., we can't tear it down properly).
+         */
         Isolates.assignCurrentStartTime();
 
         if (!firstIsolate) {

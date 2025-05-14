@@ -49,7 +49,7 @@ public final class Target_jdk_internal_misc_VM {
 
     @Substitute
     public static String getSavedProperty(String name) {
-        return SystemPropertiesSupport.singleton().getSavedProperties().get(name);
+        return SystemPropertiesSupport.singleton().getInitialProperty(name);
     }
 
     @AnnotateOriginal
