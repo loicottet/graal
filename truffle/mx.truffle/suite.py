@@ -98,13 +98,10 @@ suite = {
     },
 
     "TRUFFLE_JCODINGS": {
-      "digest" : "sha512:280e989a1af7679da82bb9adb27a8c4e08c8da09f0bb93c380a36bfe7071c62bc9e7248b634d9e04f3ab275ec0672a44f8ab41dca8c10128c4351b6302275e84",
-      "sourceDigest" : "sha512:f6843609284be7dbfdbc7530e34c15e6aea7d3a45c4ee8e6836ee42fafbb9306f7234e20d8abbfc6a13e28d885eb5d743d69bfbbf738932db1fe42e031a835e3",
-      "maven": {
-        "groupId": "org.jruby.jcodings",
-        "artifactId": "jcodings",
-        "version": "1.0.63",
-      },
+      "digest" : "sha512:f86f13234338f9242b747930acc7aad895084e88ea179c911674a5705602025b20cb37ebbe97f56cbb01f331d8bd54f99fc73a2517ad0f5a6874c673b040337e",
+      "version" : "1.0.63.0",
+      "urls" : ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/graalvm-shadowed-jcodings-{version}.jar"],
+      "exports" : [],
       "license": ["MIT"],
     },
 
