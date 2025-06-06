@@ -38,28 +38,46 @@ The following prerequisites should be met:
 - A 64-bit `musl` toolchain, `make`, and `configure`
 - The latest `zlib` library
 
-1. Make sure you have installed a GraalVM JDK.
-The easiest way to get started is with [SDKMAN!](https://sdkman.io/jdks#graal).
+The easiest way to install GraalVM is with [SDKMAN!](https://sdkman.io/jdks#graal).
 For other installation options, visit the [Downloads section](https://www.graalvm.org/downloads/).
 
-2. Next, you should install the `musl` toolchain, compile and install `zlib` into the toolchain. 
-Download the `musl` toolchain from [musl.cc](https://musl.cc/). 
-(We recommend [this one](https://more.musl.cc/10/x86_64-linux-musl/x86_64-linux-musl-native.tgz)). 
-Extract the toolchain to a directory of your choice. This directory will be referred as `$TOOLCHAIN_DIR`.
+To create statically linked applications with Native Image, you require a `musl` toolchain with the `zlib` library.
+Use the latest or a recent version of musl (all versions prior and including `1.2.5` are affected by [CVE-2025-26519](https://www.openwall.com/lists/musl/2025/02/13/1)).
+The steps to building `musl` from [source](https://musl.libc.org/) are as shown below.
+The example assumes you are using [musl-1.2.6](https://musl.libc.org/releases/musl-1.2.6.tar.gz).
 
-3. Download the latest `zlib` library sources from [zlib.net](https://zlib.net/) and extract them. (This documentation uses `zlib-1.2.11`.)
+```bash
+# Specify an installation directory for musl:
+export MUSL_HOME=$PWD/musl-toolchain
 
-4. Create a new environment variable, named `CC`:
-    ```bash
-    CC=$TOOLCHAIN_DIR/bin/gcc
-    ```
+# Download musl and zlib sources:
+curl -O https://musl.libc.org/releases/musl-1.2.6.tar.gz
+curl -O https://zlib.net/fossils/zlib-1.2.13.tar.gz
 
-5. Change into the `zlib` directory, and then run the following commands to compile and install `zlib` into the toolchain:
-    ```bash
-    ./configure --prefix=$TOOLCHAIN_DIR --static
-    make
-    make install
-    ```
+# Build musl from source
+tar -xzvf musl-1.2.6.tar.gz
+pushd musl-1.2.6
+./configure --prefix=$MUSL_HOME --static
+# The next operation may require privileged access to system resources, so use sudo
+sudo make && make install
+popd
+
+# Install a symlink for use by native-image
+ln -s $MUSL_HOME/bin/musl-gcc $MUSL_HOME/bin/x86_64-linux-musl-gcc
+
+# Extend the system path and confirm that musl is available by printing its version
+export PATH="$MUSL_HOME/bin:$PATH"
+x86_64-linux-musl-gcc --version
+
+# Build zlib with musl from source and install into the MUSL_HOME directory
+tar -xzvf zlib-1.2.13.tar.gz
+pushd zlib-1.2.13
+CC=musl-gcc ./configure --prefix=$MUSL_HOME --static
+make && make install
+popd
+```
+
+With the requirements set up, create the demo.
 
 ## Build a Static Native Executable
 
