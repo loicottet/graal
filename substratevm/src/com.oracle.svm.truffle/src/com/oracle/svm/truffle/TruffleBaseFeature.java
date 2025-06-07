@@ -26,7 +26,6 @@ package com.oracle.svm.truffle;
 
 import static com.oracle.svm.core.util.VMError.shouldNotReachHere;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.graalvm.compiler.options.OptionType.User;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -79,7 +78,6 @@ import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugin.RequiredInvo
 import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins;
 import org.graalvm.compiler.nodes.graphbuilderconf.InvocationPlugins.Registration;
 import org.graalvm.compiler.options.Option;
-import org.graalvm.compiler.options.OptionStability;
 import org.graalvm.compiler.phases.tiers.Suites;
 import org.graalvm.compiler.phases.util.Providers;
 import org.graalvm.compiler.truffle.compiler.host.InjectImmutableFrameFieldsPhase;
@@ -103,6 +101,7 @@ import com.oracle.svm.core.BuildArtifacts;
 import com.oracle.svm.core.NeverInline;
 import com.oracle.svm.core.ParsingReason;
 import com.oracle.svm.core.RuntimeAssertionsSupport;
+import com.oracle.svm.core.SubstrateOptions;
 import com.oracle.svm.core.annotate.Alias;
 import com.oracle.svm.core.annotate.AnnotateOriginal;
 import com.oracle.svm.core.annotate.Delete;
@@ -207,11 +206,6 @@ public final class TruffleBaseFeature implements InternalFeature {
     }
 
     public static class Options {
-
-        @Option(help = "Automatically copy the necessary language resources to the resources/languages directory next to the produced image." +
-                        "Language resources for each language are specified in the native-image-resources.filelist file located in the language home directory." +
-                        "If there is no native-image-resources.filelist file in the language home directory or the file is empty, then no resources are copied.", type = User, stability = OptionStability.STABLE)//
-        public static final HostedOptionKey<Boolean> CopyLanguageResources = new HostedOptionKey<>(true);
 
         @Option(help = "Check that context pre-initialization does not introduce absolute TruffleFiles into the image heap.")//
         public static final HostedOptionKey<Boolean> TruffleCheckPreinitializedFiles = new HostedOptionKey<>(true);
@@ -513,7 +507,7 @@ public final class TruffleBaseFeature implements InternalFeature {
         StaticObjectSupport.duringSetup(access);
 
         HomeFinder hf = HomeFinder.getInstance();
-        if (Options.CopyLanguageResources.getValue()) {
+        if (SubstrateOptions.TruffleStableOptions.CopyLanguageResources.getValue()) {
             if (!(hf instanceof DefaultHomeFinder)) {
                 VMError.shouldNotReachHere(String.format("HomeFinder %s cannot be used if CopyLanguageResources option of TruffleBaseFeature is enabled", hf.getClass().getName()));
             }
@@ -1173,7 +1167,7 @@ public final class TruffleBaseFeature implements InternalFeature {
 
     @Override
     public void afterImageWrite(AfterImageWriteAccess access) {
-        if (Options.CopyLanguageResources.getValue()) {
+        if (SubstrateOptions.TruffleStableOptions.CopyLanguageResources.getValue()) {
             Path buildDir = access.getImagePath();
             if (buildDir != null) {
                 Path parent = buildDir.getParent();
@@ -1518,7 +1512,7 @@ final class Target_com_oracle_truffle_polyglot_InternalResourceCache {
 
         @Override
         public Object transform(Object receiver, Object originalValue) {
-            return TruffleBaseFeature.Options.CopyLanguageResources.getValue();
+            return SubstrateOptions.TruffleStableOptions.CopyLanguageResources.getValue();
         }
     }
 }
