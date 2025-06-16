@@ -4,6 +4,7 @@ This changelog summarizes major changes between GraalVM SDK versions. The main f
 
 ## Version 23.1.8
 * GR-59688 Added [Version#getComponent(int)](https://www.graalvm.org/truffle/javadoc/org/graalvm/home/Version.html#getComponent(int)) returning the numeric value of the version component at the specified index.
+* GR-61383 JLine3 upgrade from 3.23 to 3.28.
 
 ## Version 23.1.7
 * GR-61490 Added the option `engine.MaximumCompilations` to protect against too many repeated compilations of the same call target. The default value is `100`.
