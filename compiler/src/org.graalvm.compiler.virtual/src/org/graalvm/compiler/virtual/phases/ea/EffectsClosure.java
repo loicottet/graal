@@ -352,6 +352,7 @@ public abstract class EffectsClosure<BlockT extends EffectsBlockState<BlockT>> e
     @Override
     @SuppressWarnings("try")
     protected final List<BlockT> processLoop(Loop<HIRBlock> loop, BlockT initialState) {
+        final StructuredGraph graph = loop.getHeader().getBeginNode().graph();
         if (initialState.isDead()) {
             ArrayList<BlockT> states = new ArrayList<>();
             for (int i = 0; i < loop.getLoopExits().size(); i++) {
@@ -422,7 +423,10 @@ public abstract class EffectsClosure<BlockT extends EffectsBlockState<BlockT>> e
                 loopLocationKillCacheCopy.putAll(loopLocationKillCache);
             }
         }
-        while (true) {
+
+        boolean tooManyIterationsSeen = false;
+        while (true) { // // TERMINATION ARGUMENT: bound by number of basic blocks and iterative
+                       // loop traversal
             try {
                 BlockT loopEntryState = initialStateRemovedKilledLocations;
                 BlockT lastMergedState = cloneState(initialStateRemovedKilledLocations);
@@ -511,7 +515,18 @@ public abstract class EffectsClosure<BlockT extends EffectsBlockState<BlockT>> e
                 currentMode = EffectsClosureMode.MATERIALIZE_ALL;
                 continue;
             }
-            throw new GraalError("too many iterations at %s", loop);
+            if (!tooManyIterationsSeen) {
+                tooManyIterationsSeen = true;
+                /*
+                 * The first time we see that we did too many iterations we materialize everything
+                 * before the loop and see if that fixes our problems.
+                 */
+                graph.getDebug().dump(DebugContext.VERY_DETAILED_LEVEL, graph, "Too many loop iterations for %s trying to materialize everything before loop and redo loop nest", loop);
+                currentMode = EffectsClosureMode.MATERIALIZE_ALL;
+                continue;
+            } else {
+                throw new GraalError("too many iterations at %s", loop);
+            }
         }
     }
 
