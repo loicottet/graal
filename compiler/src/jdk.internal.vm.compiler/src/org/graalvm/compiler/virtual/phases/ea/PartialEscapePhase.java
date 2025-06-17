@@ -133,6 +133,16 @@ public class PartialEscapePhase extends EffectsPhase<CoreProviders> {
     }
 
     @Override
+    public void updateGraphState(GraphState graphState) {
+        super.updateGraphState(graphState);
+        // This may be set more than once but the goal is to record whether PartialEscapePhase has
+        // even been run.
+        if (!graphState.isAfterStage(StageFlag.PARTIAL_ESCAPE)) {
+            graphState.setAfterStage(StageFlag.PARTIAL_ESCAPE);
+        }
+    }
+
+    @Override
     @SuppressWarnings("try")
     protected void run(StructuredGraph graph, CoreProviders context) {
         if (VirtualUtil.matches(graph, EscapeAnalyzeOnly.getValue(graph.getOptions()))) {
