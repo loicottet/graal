@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2023, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -234,7 +234,7 @@ public class PEGraphDecoderTest extends GraalCompilerTest {
             graphBuilderConfig = editGraphBuilderConfiguration(graphBuilderConfig);
             registerPlugins(graphBuilderConfig.getPlugins().getInvocationPlugins());
             targetGraph = new StructuredGraph.Builder(debug.getOptions(), debug, AllowAssumptions.YES).method(testMethod).build();
-            CachingPEGraphDecoder decoder = new CachingPEGraphDecoder(getTarget().arch, targetGraph, getProviders(), graphBuilderConfig, OptimisticOptimizations.NONE,
+            CachingPEGraphDecoder decoder = new CachingPEGraphDecoder(getTarget().arch, targetGraph, getProviders(), getProviders(), graphBuilderConfig, OptimisticOptimizations.NONE,
                             null, null, new InlineInvokePlugin[]{new InlineAll()}, null, null, null, null, null, graphCache, () -> null, false, false, true);
 
             decoder.decode(testMethod);

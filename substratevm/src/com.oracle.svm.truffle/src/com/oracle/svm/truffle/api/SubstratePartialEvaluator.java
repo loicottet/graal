@@ -66,7 +66,7 @@ public class SubstratePartialEvaluator extends PartialEvaluator {
     protected PEGraphDecoder createGraphDecoder(TruffleTierContext context, InvocationPlugins invocationPlugins, InlineInvokePlugin[] inlineInvokePlugins, ParameterPlugin parameterPlugin,
                     NodePlugin[] nodePlugins, SourceLanguagePositionProvider sourceLanguagePositionProvider, EconomicMap<ResolvedJavaMethod, EncodedGraph> graphCache,
                     Supplier<AutoCloseable> createCachedGraphScope) {
-        return new SubstratePEGraphDecoder(config.architecture(), context.graph, config.lastTier().providers().copyWith(compilationLocalConstantProvider), loopExplosionPlugin, invocationPlugins,
+        return new SubstratePEGraphDecoder(config.architecture(), context.graph, config.lastTier().providers().copyWith(constantFieldProvider), loopExplosionPlugin, invocationPlugins,
                         inlineInvokePlugins, parameterPlugin, nodePlugins, callInlined, sourceLanguagePositionProvider, specialCallTargetCache, invocationPluginsCache);
     }
 

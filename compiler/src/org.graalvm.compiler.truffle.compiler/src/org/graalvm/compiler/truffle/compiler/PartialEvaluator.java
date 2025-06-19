@@ -127,7 +127,8 @@ public abstract class PartialEvaluator {
      */
     // TODO GR-37097 Move to TruffleCompilerImpl
     protected volatile InstrumentPhase.Instrumentation instrumentation;
-    protected final TruffleConstantFieldProvider compilationLocalConstantProvider;
+    protected final TruffleConstantFieldProvider constantFieldProvider;
+    private final TruffleCachingConstantFieldProvider graphCacheConstantFieldProvider;
     protected boolean allowAssumptionsDuringParsing;
     protected boolean persistentEncodedGraphCache;
 
@@ -149,7 +150,11 @@ public abstract class PartialEvaluator {
         this.firstTierDecodingPlugins = createDecodingInvocationPlugins(config.firstTier().partialEvaluator(), configForRoot.getPlugins(), config.firstTier().providers());
         this.lastTierDecodingPlugins = createDecodingInvocationPlugins(config.lastTier().partialEvaluator(), configForRoot.getPlugins(), config.lastTier().providers());
         this.nodePlugins = createNodePlugins(configForRoot.getPlugins());
-        this.compilationLocalConstantProvider = new TruffleConstantFieldProvider(
+        this.constantFieldProvider = new TruffleConstantFieldProvider(
+                        this.config.lastTier().providers().getConstantFieldProvider(),
+                        this.config.lastTier().providers().getMetaAccess(),
+                        knownFields);
+        this.graphCacheConstantFieldProvider = new TruffleCachingConstantFieldProvider(
                         this.config.lastTier().providers().getConstantFieldProvider(),
                         this.config.lastTier().providers().getMetaAccess(),
                         knownFields);
@@ -422,10 +427,11 @@ public abstract class PartialEvaluator {
         DeoptimizeOnExceptionPhase postParsingPhase = new DeoptimizeOnExceptionPhase(
                         method -> TruffleCompilerRuntime.getRuntime().getInlineKind(method, true) == InlineKind.DO_NOT_INLINE_WITH_SPECULATIVE_EXCEPTION);
 
-        Providers compilationUnitProviders = config.lastTier().providers().copyWith(compilationLocalConstantProvider);
+        Providers graphCacheProviders = config.lastTier().providers().copyWith(graphCacheConstantFieldProvider);
+        Providers decoderProviders = config.lastTier().providers().copyWith(constantFieldProvider);
 
         assert !allowAssumptionsDuringParsing || !persistentEncodedGraphCache;
-        return new CachingPEGraphDecoder(config.architecture(), context.graph, compilationUnitProviders, newConfig, TruffleCompilerImpl.Optimizations,
+        return new CachingPEGraphDecoder(config.architecture(), context.graph, graphCacheProviders, decoderProviders, newConfig, TruffleCompilerImpl.Optimizations,
                         loopExplosionPlugin, decodingPlugins, inlineInvokePlugins, parameterPlugin, nodePluginList, callInlined,
                         sourceLanguagePositionProvider, postParsingPhase, graphCache, createCachedGraphScope, allowAssumptionsDuringParsing, false, true);
     }
