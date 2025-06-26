@@ -38,7 +38,9 @@
   ]),
 
   local weekly_amd64_forks_builds = std.flattenArrays([
+    bc.generate_fork_builds(c.weekly  + hw.x52 + jdk + cc.libgraal + suite, subdir='compiler') +
     bc.generate_fork_builds(c.weekly  + hw.e3  + jdk + cc.libgraal + suite, subdir='compiler') +
+    bc.generate_fork_builds(c.monthly + hw.x52 + jdk + cc.jargraal + suite, subdir='compiler') +
     bc.generate_fork_builds(c.monthly + hw.e3  + jdk + cc.jargraal + suite, subdir='compiler')
   for jdk in cc.bench_jdks
   for suite in bench.groups.weekly_forks_suites
