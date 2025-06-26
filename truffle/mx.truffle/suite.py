@@ -98,8 +98,8 @@ suite = {
     },
 
     "TRUFFLE_JCODINGS": {
-      "digest" : "sha512:455f3dc287181c185ab87c03e88cc89615f3da262358f44ea01bb3cc9f04d8e3cee7911f8a14a6403d3285d9b54812aaa48ade093a0b3ec4e594adbbda1d5387",
-      "version" : "1.0.58.1",
+      "digest" : "sha512:f86f13234338f9242b747930acc7aad895084e88ea179c911674a5705602025b20cb37ebbe97f56cbb01f331d8bd54f99fc73a2517ad0f5a6874c673b040337e",
+      "version" : "1.0.63.0",
       "urls" : ["https://lafo.ssw.uni-linz.ac.at/pub/graal-external-deps/graalvm-shadowed-jcodings-{version}.jar"],
       "exports" : [],
       "license": ["MIT"],
