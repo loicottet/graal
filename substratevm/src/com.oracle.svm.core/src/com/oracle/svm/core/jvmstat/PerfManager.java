@@ -47,7 +47,7 @@ import com.oracle.svm.core.locks.VMCondition;
 import com.oracle.svm.core.locks.VMMutex;
 import com.oracle.svm.core.option.HostedOptionKey;
 import com.oracle.svm.core.option.RuntimeOptionKey;
-import com.oracle.svm.core.thread.RecurringCallbackSupport;
+import com.oracle.svm.core.thread.ThreadingSupportImpl;
 import com.oracle.svm.core.util.VMError;
 
 /**
@@ -185,7 +185,7 @@ public class PerfManager {
 
         @Override
         public void run() {
-            RecurringCallbackSupport.suspendCallbackTimer("Performance data thread must not execute recurring callbacks.");
+            ThreadingSupportImpl.pauseRecurringCallback("Performance data thread must not execute recurring callbacks.");
 
             initializeMemory();
             try {
