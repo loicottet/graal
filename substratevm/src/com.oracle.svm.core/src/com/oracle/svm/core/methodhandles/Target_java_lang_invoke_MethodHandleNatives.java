@@ -195,7 +195,6 @@ final class Target_java_lang_invoke_MethodHandleNatives {
     @Delete
     private static native void copyOutBootstrapArguments(Class<?> caller, int[] indexInfo, int start, int end, Object[] buf, int pos, boolean resolve, Object ifNotAvailable);
 
-
     @AnnotateOriginal
     static native boolean refKindIsMethod(byte refKind);
 
