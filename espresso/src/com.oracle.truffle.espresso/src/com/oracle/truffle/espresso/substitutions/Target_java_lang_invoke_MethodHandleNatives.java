@@ -822,10 +822,4 @@ public final class Target_java_lang_invoke_MethodHandleNatives {
         }
     }
 
-    @Substitution
-    @SuppressWarnings("unused")
-    public static void clearCallSiteContext(@JavaType(internalName = "Ljava/lang/invoke/MethodHandleNatives$CallSiteContext;") StaticObject context) {
-        /* nop */
-    }
-
 }

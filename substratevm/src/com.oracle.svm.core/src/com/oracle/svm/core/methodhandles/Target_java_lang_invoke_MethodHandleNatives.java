@@ -195,10 +195,6 @@ final class Target_java_lang_invoke_MethodHandleNatives {
     @Delete
     private static native void copyOutBootstrapArguments(Class<?> caller, int[] indexInfo, int start, int end, Object[] buf, int pos, boolean resolve, Object ifNotAvailable);
 
-    @Substitute
-    private static void clearCallSiteContext(Target_java_lang_invoke_MethodHandleNatives_CallSiteContext context) {
-        throw unimplemented("CallSiteContext not supported");
-    }
 
     @AnnotateOriginal
     static native boolean refKindIsMethod(byte refKind);
@@ -393,8 +389,4 @@ final class Target_java_lang_invoke_MethodHandleNatives_Constants {
     @Alias @RecomputeFieldValue(isFinal = true, kind = Kind.None) static byte REF_invokeInterface;
     @Alias @RecomputeFieldValue(isFinal = true, kind = Kind.None) static byte REF_LIMIT;
     // Checkstyle: resume
-}
-
-@TargetClass(className = "java.lang.invoke.MethodHandleNatives", innerClass = "CallSiteContext")
-final class Target_java_lang_invoke_MethodHandleNatives_CallSiteContext {
 }
