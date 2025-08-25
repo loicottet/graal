@@ -31,6 +31,7 @@ import org.graalvm.nativeimage.Platforms;
 @Platforms(Platform.HOSTED_ONLY.class)
 public final class BuildPhaseProvider {
 
+    private boolean analysisStarted;
     private boolean analysisFinished;
     private boolean hostedUniverseBuilt;
     private boolean compilationFinished;
@@ -44,6 +45,14 @@ public final class BuildPhaseProvider {
     }
 
     BuildPhaseProvider() {
+    }
+
+    public static void markAnalysisStarted() {
+        singleton().analysisStarted = true;
+    }
+
+    public static boolean isAnalysisStarted() {
+        return ImageSingletons.contains(BuildPhaseProvider.class) && singleton().analysisStarted;
     }
 
     public static void markAnalysisFinished() {

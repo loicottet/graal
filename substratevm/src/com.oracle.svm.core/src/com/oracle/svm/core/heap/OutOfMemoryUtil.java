@@ -28,6 +28,7 @@ import com.oracle.svm.core.SubstrateGCOptions;
 import com.oracle.svm.core.headers.LibC;
 import com.oracle.svm.core.jdk.JDKUtils;
 import com.oracle.svm.core.log.Log;
+import com.oracle.svm.core.thread.VMOperation;
 import com.oracle.svm.core.util.VMError;
 
 /**
@@ -45,6 +46,11 @@ public class OutOfMemoryUtil {
 
     @RestrictHeapAccess(access = RestrictHeapAccess.Access.NO_ALLOCATION, reason = "Can't allocate while out of memory.")
     public static OutOfMemoryError reportOutOfMemoryError(OutOfMemoryError error) {
+        if (VMOperation.isGCInProgress()) {
+            /* If a GC is in progress, then we can't execute the more complex logic below. */
+            throw error;
+        }
+
         if (SubstrateGCOptions.ExitOnOutOfMemoryError.getValue()) {
             if (LibC.isSupported()) {
                 Log.log().string("Terminating due to java.lang.OutOfMemoryError: ").string(JDKUtils.getRawMessage(error)).newline();

@@ -765,6 +765,7 @@ public class NativeImageGenerator {
                 try {
                     ConcurrentAnalysisAccessImpl concurrentConfig = new ConcurrentAnalysisAccessImpl(featureHandler, loader, bb, nativeLibraries, debug);
                     aUniverse.setConcurrentAnalysisAccess(concurrentConfig);
+                    BuildPhaseProvider.markAnalysisStarted();
                     bb.runAnalysis(debug, (universe) -> {
                         try (StopTimer t2 = TimerCollection.createTimerAndStart(TimerCollection.Registry.FEATURES)) {
                             bb.getHostVM().notifyClassReachabilityListener(universe, config);
