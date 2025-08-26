@@ -73,10 +73,4 @@ final class TruffleCachingConstantFieldProvider extends TruffleConstantFieldProv
             return graalConstantFieldProvider.readConstantField(field, tool);
         }
     }
-
-    @Override
-    public boolean maybeFinal(ResolvedJavaField field) {
-        return graalConstantFieldProvider.maybeFinal(field);
-    }
-
 }
