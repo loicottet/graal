@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,6 +36,11 @@ import jdk.vm.ci.meta.JavaKind;
 import jdk.vm.ci.meta.MetaAccessProvider;
 import jdk.vm.ci.meta.ResolvedJavaField;
 
+/**
+ * Constant field provider used for Truffle partial evaluation.
+ *
+ * @see TruffleCachingConstantFieldProvider
+ */
 public class TruffleConstantFieldProvider extends TruffleStringConstantFieldProvider {
     private final ConcurrentHashMap<ResolvedJavaField, ConstantFieldInfo> cachedConstantFieldInfo;
 
@@ -93,7 +98,7 @@ public class TruffleConstantFieldProvider extends TruffleStringConstantFieldProv
         return null;
     }
 
-    private ConstantFieldInfo getConstantFieldInfo(ResolvedJavaField field) {
+    protected ConstantFieldInfo getConstantFieldInfo(ResolvedJavaField field) {
         return cachedConstantFieldInfo.computeIfAbsent(field, f -> TruffleCompilerRuntime.getRuntime().getConstantFieldInfo(f));
     }
 

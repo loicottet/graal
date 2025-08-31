@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -68,7 +68,7 @@ public class CachingPEGraphDecoder extends PEGraphDecoder {
 
     private static final TimerKey BuildGraphTimer = DebugContext.timer("PartialEvaluation-GraphBuilding");
 
-    protected final Providers providers;
+    protected final Providers graphCacheProviders;
     protected final GraphBuilderConfiguration graphBuilderConfig;
     protected final OptimisticOptimizations optimisticOpts;
     private final EconomicMap<ResolvedJavaMethod, EncodedGraph> persistentGraphCache;
@@ -84,21 +84,28 @@ public class CachingPEGraphDecoder extends PEGraphDecoder {
      * @param forceLink if {@code true} and the graph contains an invoke of a method from a class
      *            that has not yet been linked, linking is performed.
      */
-    public CachingPEGraphDecoder(Architecture architecture, StructuredGraph graph, Providers providers, GraphBuilderConfiguration graphBuilderConfig, OptimisticOptimizations optimisticOpts,
-                    LoopExplosionPlugin loopExplosionPlugin, InvocationPlugins invocationPlugins, InlineInvokePlugin[] inlineInvokePlugins,
+    public CachingPEGraphDecoder(Architecture architecture,
+                    StructuredGraph graph,
+                    Providers graphCacheProviders,
+                    Providers decodingProviders,
+                    GraphBuilderConfiguration graphBuilderConfig,
+                    OptimisticOptimizations optimisticOpts,
+                    LoopExplosionPlugin loopExplosionPlugin,
+                    InvocationPlugins invocationPlugins,
+                    InlineInvokePlugin[] inlineInvokePlugins,
                     ParameterPlugin parameterPlugin,
                     NodePlugin[] nodePlugins, ResolvedJavaMethod peRootForInlining, SourceLanguagePositionProvider sourceLanguagePositionProvider,
                     BasePhase<? super CoreProviders> postParsingPhase, EconomicMap<ResolvedJavaMethod, EncodedGraph> persistentGraphCache, Supplier<AutoCloseable> createPersistentCachedGraphScope,
                     boolean allowAssumptionsDuringParsing,
                     boolean needsExplicitException,
                     boolean forceLink) {
-        super(architecture, graph, providers, loopExplosionPlugin,
+        super(architecture, graph, decodingProviders, loopExplosionPlugin,
                         invocationPlugins, inlineInvokePlugins, parameterPlugin, nodePlugins, peRootForInlining, sourceLanguagePositionProvider,
                         new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), needsExplicitException, forceLink);
 
         assert !graphBuilderConfig.trackNodeSourcePosition() || graph.trackNodeSourcePosition();
 
-        this.providers = providers;
+        this.graphCacheProviders = graphCacheProviders;
         this.graphBuilderConfig = graphBuilderConfig;
         this.optimisticOpts = optimisticOpts;
         this.postParsingPhase = postParsingPhase;
@@ -109,7 +116,7 @@ public class CachingPEGraphDecoder extends PEGraphDecoder {
     }
 
     protected GraphBuilderPhase.Instance createGraphBuilderPhaseInstance(IntrinsicContext initialIntrinsicContext) {
-        return new GraphBuilderPhase.Instance(providers, graphBuilderConfig, optimisticOpts, initialIntrinsicContext);
+        return new GraphBuilderPhase.Instance(graphCacheProviders, graphBuilderConfig, optimisticOpts, initialIntrinsicContext);
     }
 
     @SuppressWarnings("try")
@@ -128,9 +135,9 @@ public class CachingPEGraphDecoder extends PEGraphDecoder {
          * initial graph.
          */
         try (DebugContext.Scope scope = debug.scope("createGraph", graphToEncode)) {
-            new ConvertDeoptimizeToGuardPhase(canonicalizer).apply(graphToEncode, providers);
+            new ConvertDeoptimizeToGuardPhase(canonicalizer).apply(graphToEncode, graphCacheProviders);
             if (GraalOptions.EarlyGVN.getValue(graphToEncode.getOptions())) {
-                new DominatorBasedGlobalValueNumberingPhase(canonicalizer).apply(graphToEncode, providers);
+                new DominatorBasedGlobalValueNumberingPhase(canonicalizer).apply(graphToEncode, graphCacheProviders);
             }
         } catch (Throwable t) {
             throw debug.handle(t);
@@ -164,9 +171,9 @@ public class CachingPEGraphDecoder extends PEGraphDecoder {
             IntrinsicContext initialIntrinsicContext = null;
             GraphBuilderPhase.Instance graphBuilderPhaseInstance = createGraphBuilderPhaseInstance(initialIntrinsicContext);
             graphBuilderPhaseInstance.apply(graphToEncode);
-            canonicalizer.apply(graphToEncode, providers);
+            canonicalizer.apply(graphToEncode, graphCacheProviders);
             if (postParsingPhase != null) {
-                postParsingPhase.apply(graphToEncode, providers);
+                postParsingPhase.apply(graphToEncode, graphCacheProviders);
             }
         } catch (Throwable ex) {
             throw debug.handle(ex);
